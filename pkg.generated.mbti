@@ -18,7 +18,40 @@ pub fn NodeError::equal(Self, Self) -> Bool
 pub fn NodeError::not_equal(Self, Self) -> Bool
 pub fn NodeError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror ProtocolError {
+  InvalidVersion
+  UnsupportedVersion(ProtocolVersion)
+  EmptyMessageId
+  EmptyCorrelationId
+  EmptyPayload
+} derive(Eq, @debug.Debug)
+pub fn ProtocolError::equal(Self, Self) -> Bool
+pub fn ProtocolError::not_equal(Self, Self) -> Bool
+pub fn ProtocolError::to_repr(Self) -> @debug.Repr
+
 // Types and methods
+pub(all) struct MessageEnvelope {
+  version : ProtocolVersion
+  message_id : String
+  node_id : NodeId
+  created_at : Timestamp
+  correlation_id : String?
+  payload : MessagePayload
+} derive(Eq, @debug.Debug)
+pub fn MessageEnvelope::equal(Self, Self) -> Bool
+pub fn MessageEnvelope::new(version~ : ProtocolVersion, message_id~ : String, node_id~ : NodeId, created_at~ : Timestamp, correlation_id~ : String?, payload~ : MessagePayload) -> Self raise ProtocolError
+pub fn MessageEnvelope::not_equal(Self, Self) -> Bool
+pub fn MessageEnvelope::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MessagePayload {
+  Telemetry(String)
+  Command(String)
+  CommandResult(String)
+} derive(Eq, @debug.Debug)
+pub fn MessagePayload::equal(Self, Self) -> Bool
+pub fn MessagePayload::not_equal(Self, Self) -> Bool
+pub fn MessagePayload::to_repr(Self) -> @debug.Repr
+
 pub(all) struct Node {
   id : NodeId
   capabilities : Array[NodeCapability]
@@ -72,6 +105,17 @@ pub(all) enum NodeLifecycle {
 pub fn NodeLifecycle::equal(Self, Self) -> Bool
 pub fn NodeLifecycle::not_equal(Self, Self) -> Bool
 pub fn NodeLifecycle::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ProtocolVersion {
+  major : Int
+  minor : Int
+} derive(Eq, @debug.Debug)
+pub fn ProtocolVersion::current() -> Self
+pub fn ProtocolVersion::ensure_supported(Self) -> Unit raise ProtocolError
+pub fn ProtocolVersion::equal(Self, Self) -> Bool
+pub fn ProtocolVersion::new(major~ : Int, minor~ : Int) -> Self raise ProtocolError
+pub fn ProtocolVersion::not_equal(Self, Self) -> Bool
+pub fn ProtocolVersion::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Timestamp {
   unix_seconds : Int

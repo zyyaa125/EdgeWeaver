@@ -40,3 +40,27 @@ pub extend Node with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend Node with Eq::{not_equal, equal}
+
+///|
+pub extend ProtocolVersion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ProtocolVersion with Eq::{not_equal, equal}
+
+///|
+pub extend ProtocolError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ProtocolError with Eq::{not_equal, equal}
+
+///|
+pub extend MessagePayload with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessagePayload with Eq::{not_equal, equal}
+
+///|
+pub extend MessageEnvelope with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageEnvelope with Eq::{not_equal, equal}
