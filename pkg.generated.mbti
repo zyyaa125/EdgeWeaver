@@ -1,0 +1,86 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "zyyaa125/edgeweaver"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub(all) suberror NodeError {
+  EmptyNodeId
+  InvalidTimestamp
+  InvalidTransition(String)
+  InvalidHealthUpdate
+} derive(Eq, @debug.Debug)
+pub fn NodeError::equal(Self, Self) -> Bool
+pub fn NodeError::not_equal(Self, Self) -> Bool
+pub fn NodeError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) struct Node {
+  id : NodeId
+  capabilities : Array[NodeCapability]
+  lifecycle : NodeLifecycle
+  health : NodeHealth
+  created_at : Timestamp
+  updated_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn Node::equal(Self, Self) -> Bool
+pub fn Node::new(id~ : String, capabilities~ : Array[NodeCapability], created_at~ : Timestamp) -> Self raise NodeError
+pub fn Node::not_equal(Self, Self) -> Bool
+pub fn Node::record_health(Self, health~ : NodeHealth, at~ : Timestamp) -> Self raise NodeError
+pub fn Node::supports(Self, capability~ : NodeCapability) -> Bool
+pub fn Node::to_repr(Self) -> @debug.Repr
+pub fn Node::transition(Self, target~ : NodeLifecycle, at~ : Timestamp) -> Self raise NodeError
+
+pub(all) enum NodeCapability {
+  Telemetry
+  CommandExecution
+  PersistentStorage
+} derive(Eq, @debug.Debug)
+pub fn NodeCapability::equal(Self, Self) -> Bool
+pub fn NodeCapability::not_equal(Self, Self) -> Bool
+pub fn NodeCapability::to_repr(Self) -> @debug.Repr
+
+pub(all) enum NodeHealth {
+  Unknown
+  Healthy
+  Degraded
+  Unhealthy
+} derive(Eq, @debug.Debug)
+pub fn NodeHealth::equal(Self, Self) -> Bool
+pub fn NodeHealth::not_equal(Self, Self) -> Bool
+pub fn NodeHealth::to_repr(Self) -> @debug.Repr
+
+pub(all) struct NodeId {
+  value : String
+} derive(Eq, @debug.Debug)
+pub fn NodeId::equal(Self, Self) -> Bool
+pub fn NodeId::new(value~ : String) -> Self raise NodeError
+pub fn NodeId::not_equal(Self, Self) -> Bool
+pub fn NodeId::to_repr(Self) -> @debug.Repr
+
+pub(all) enum NodeLifecycle {
+  New
+  Enrolled
+  Online
+  Offline
+  Retired
+} derive(Eq, @debug.Debug)
+pub fn NodeLifecycle::equal(Self, Self) -> Bool
+pub fn NodeLifecycle::not_equal(Self, Self) -> Bool
+pub fn NodeLifecycle::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Timestamp {
+  unix_seconds : Int
+} derive(Eq, @debug.Debug)
+pub fn Timestamp::equal(Self, Self) -> Bool
+pub fn Timestamp::new(unix_seconds~ : Int) -> Self raise NodeError
+pub fn Timestamp::not_equal(Self, Self) -> Bool
+pub fn Timestamp::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
