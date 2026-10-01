@@ -160,3 +160,45 @@ pub extend StoreCheckpoint with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend StoreCheckpoint with Eq::{not_equal, equal}
+
+///|
+pub extend SyncError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SyncError with Eq::{not_equal, equal}
+
+///|
+pub extend SyncConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SyncConfig with Eq::{not_equal, equal}
+
+///|
+pub extend SyncCursor with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SyncCursor with Eq::{not_equal, equal}
+
+///|
+pub extend SyncSendResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SyncSendResult with Eq::{not_equal, equal}
+
+///|
+pub extend ReplayOutcome with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ReplayOutcome with Eq::{not_equal, equal}
+
+///|
+pub extend ReplayItem with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ReplayItem with Eq::{not_equal, equal}
+
+///|
+pub extend ReplayReport with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ReplayReport with Eq::{not_equal, equal}

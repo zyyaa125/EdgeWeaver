@@ -6,6 +6,7 @@ import {
 }
 
 // Values
+pub fn replay_pending(LocalStore, config~ : SyncConfig, cursor~ : SyncCursor, sender~ : (MessageEnvelope) -> SyncSendResult) -> ReplayReport raise StoreError
 
 // Errors
 pub(all) suberror CommandError {
@@ -59,6 +60,15 @@ pub(all) suberror StoreError {
 pub fn StoreError::equal(Self, Self) -> Bool
 pub fn StoreError::not_equal(Self, Self) -> Bool
 pub fn StoreError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror SyncError {
+  InvalidBatchSize
+  InvalidMaxAttempts
+  InvalidCursor
+} derive(Eq, @debug.Debug)
+pub fn SyncError::equal(Self, Self) -> Bool
+pub fn SyncError::not_equal(Self, Self) -> Bool
+pub fn SyncError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) struct Command {
@@ -294,6 +304,41 @@ pub fn QueueFullPolicy::equal(Self, Self) -> Bool
 pub fn QueueFullPolicy::not_equal(Self, Self) -> Bool
 pub fn QueueFullPolicy::to_repr(Self) -> @debug.Repr
 
+pub(all) struct ReplayItem {
+  sequence : Int
+  message_id : String
+  outcome : ReplayOutcome
+  attempts : Int
+} derive(Eq, @debug.Debug)
+pub fn ReplayItem::equal(Self, Self) -> Bool
+pub fn ReplayItem::not_equal(Self, Self) -> Bool
+pub fn ReplayItem::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ReplayOutcome {
+  Acknowledged
+  Deduplicated
+  RetryScheduled
+  Rejected
+  Exhausted
+} derive(Eq, @debug.Debug)
+pub fn ReplayOutcome::equal(Self, Self) -> Bool
+pub fn ReplayOutcome::not_equal(Self, Self) -> Bool
+pub fn ReplayOutcome::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ReplayReport {
+  cursor : SyncCursor
+  inspected : Int
+  acknowledged : Int
+  deduplicated : Int
+  retryable_failures : Int
+  permanent_failures : Int
+  exhausted : Int
+  items : Array[ReplayItem]
+} derive(Eq, @debug.Debug)
+pub fn ReplayReport::equal(Self, Self) -> Bool
+pub fn ReplayReport::not_equal(Self, Self) -> Bool
+pub fn ReplayReport::to_repr(Self) -> @debug.Repr
+
 pub(all) struct StoreCheckpoint {
   config : JournalConfig
   state : LocalStateSnapshot?
@@ -304,6 +349,35 @@ pub(all) struct StoreCheckpoint {
 pub fn StoreCheckpoint::equal(Self, Self) -> Bool
 pub fn StoreCheckpoint::not_equal(Self, Self) -> Bool
 pub fn StoreCheckpoint::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SyncConfig {
+  batch_size : Int
+  max_attempts : Int
+} derive(Eq, @debug.Debug)
+pub fn SyncConfig::equal(Self, Self) -> Bool
+pub fn SyncConfig::new(batch_size~ : Int, max_attempts~ : Int) -> Self raise SyncError
+pub fn SyncConfig::not_equal(Self, Self) -> Bool
+pub fn SyncConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SyncCursor {
+  last_acked_sequence : Int
+} derive(Eq, @debug.Debug)
+pub fn SyncCursor::advance(Self, sequence~ : Int) -> Self
+pub fn SyncCursor::equal(Self, Self) -> Bool
+pub fn SyncCursor::new(last_acked_sequence~ : Int) -> Self raise SyncError
+pub fn SyncCursor::not_equal(Self, Self) -> Bool
+pub fn SyncCursor::start() -> Self
+pub fn SyncCursor::to_repr(Self) -> @debug.Repr
+
+pub(all) enum SyncSendResult {
+  Accepted
+  Duplicate
+  RetryableFailure(String)
+  PermanentFailure(String)
+} derive(Eq, @debug.Debug)
+pub fn SyncSendResult::equal(Self, Self) -> Bool
+pub fn SyncSendResult::not_equal(Self, Self) -> Bool
+pub fn SyncSendResult::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Timestamp {
   unix_seconds : Int
