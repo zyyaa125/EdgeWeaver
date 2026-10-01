@@ -8,6 +8,27 @@ import {
 // Values
 
 // Errors
+pub(all) suberror CommandError {
+  EmptyCommandId
+  EmptyAction
+  InvalidExpiry
+  InvalidTimestamp
+  InvalidTransition(String)
+  EmptyResultMessage
+  InvalidResultState
+} derive(Eq, @debug.Debug)
+pub fn CommandError::equal(Self, Self) -> Bool
+pub fn CommandError::not_equal(Self, Self) -> Bool
+pub fn CommandError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror ConfigError {
+  InvalidVersion
+  EmptyContent
+} derive(Eq, @debug.Debug)
+pub fn ConfigError::equal(Self, Self) -> Bool
+pub fn ConfigError::not_equal(Self, Self) -> Bool
+pub fn ConfigError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror NodeError {
   EmptyNodeId
   InvalidTimestamp
@@ -30,6 +51,87 @@ pub fn ProtocolError::not_equal(Self, Self) -> Bool
 pub fn ProtocolError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub(all) struct Command {
+  id : CommandId
+  node_id : NodeId
+  action : CommandAction
+  issued_at : Timestamp
+  expires_at : Timestamp
+  updated_at : Timestamp
+  state : CommandState
+  result : CommandResult?
+} derive(Eq, @debug.Debug)
+pub fn Command::accept(Self, at~ : Timestamp) -> Self raise CommandError
+pub fn Command::equal(Self, Self) -> Bool
+pub fn Command::expire(Self, at~ : Timestamp) -> Self raise CommandError
+pub fn Command::fail(Self, at~ : Timestamp, message~ : String) -> Self raise CommandError
+pub fn Command::new(id~ : CommandId, node_id~ : NodeId, action~ : CommandAction, issued_at~ : Timestamp, expires_at~ : Timestamp) -> Self raise CommandError
+pub fn Command::not_equal(Self, Self) -> Bool
+pub fn Command::reject(Self, at~ : Timestamp, reason~ : String) -> Self raise CommandError
+pub fn Command::same_identity(Self, other~ : Self) -> Bool
+pub fn Command::start(Self, at~ : Timestamp) -> Self raise CommandError
+pub fn Command::succeed(Self, at~ : Timestamp, message~ : String) -> Self raise CommandError
+pub fn Command::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CommandAction {
+  ApplyConfig(ConfigVersion)
+  ReadTelemetry
+  Execute(String)
+} derive(Eq, @debug.Debug)
+pub fn CommandAction::equal(Self, Self) -> Bool
+pub fn CommandAction::not_equal(Self, Self) -> Bool
+pub fn CommandAction::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CommandId {
+  value : String
+} derive(Eq, @debug.Debug)
+pub fn CommandId::equal(Self, Self) -> Bool
+pub fn CommandId::new(value~ : String) -> Self raise CommandError
+pub fn CommandId::not_equal(Self, Self) -> Bool
+pub fn CommandId::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CommandResult {
+  state : CommandState
+  message : String
+  completed_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn CommandResult::equal(Self, Self) -> Bool
+pub fn CommandResult::new(state~ : CommandState, message~ : String, completed_at~ : Timestamp) -> Self raise CommandError
+pub fn CommandResult::not_equal(Self, Self) -> Bool
+pub fn CommandResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CommandState {
+  Pending
+  Accepted
+  Running
+  Succeeded
+  Failed
+  Expired
+  Rejected
+} derive(Eq, @debug.Debug)
+pub fn CommandState::equal(Self, Self) -> Bool
+pub fn CommandState::not_equal(Self, Self) -> Bool
+pub fn CommandState::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ConfigSnapshot {
+  version : ConfigVersion
+  content : String
+  created_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn ConfigSnapshot::equal(Self, Self) -> Bool
+pub fn ConfigSnapshot::new(version~ : ConfigVersion, content~ : String, created_at~ : Timestamp) -> Self raise ConfigError
+pub fn ConfigSnapshot::not_equal(Self, Self) -> Bool
+pub fn ConfigSnapshot::supersedes(Self, previous~ : Self) -> Bool
+pub fn ConfigSnapshot::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ConfigVersion {
+  value : Int
+} derive(Eq, @debug.Debug)
+pub fn ConfigVersion::equal(Self, Self) -> Bool
+pub fn ConfigVersion::new(value~ : Int) -> Self raise ConfigError
+pub fn ConfigVersion::not_equal(Self, Self) -> Bool
+pub fn ConfigVersion::to_repr(Self) -> @debug.Repr
+
 pub(all) struct MessageEnvelope {
   version : ProtocolVersion
   message_id : String

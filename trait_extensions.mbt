@@ -64,3 +64,57 @@ pub extend MessageEnvelope with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend MessageEnvelope with Eq::{not_equal, equal}
+
+///|
+pub extend ConfigError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConfigError with Eq::{not_equal, equal}
+
+///|
+pub extend ConfigVersion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConfigVersion with Eq::{not_equal, equal}
+
+///|
+pub extend ConfigSnapshot with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConfigSnapshot with Eq::{not_equal, equal}
+
+///|
+pub extend CommandError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandError with Eq::{not_equal, equal}
+
+///|
+pub extend CommandId with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandId with Eq::{not_equal, equal}
+
+///|
+pub extend CommandAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandAction with Eq::{not_equal, equal}
+
+///|
+pub extend CommandState with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandState with Eq::{not_equal, equal}
+
+///|
+pub extend CommandResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandResult with Eq::{not_equal, equal}
+
+///|
+pub extend Command with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Command with Eq::{not_equal, equal}
