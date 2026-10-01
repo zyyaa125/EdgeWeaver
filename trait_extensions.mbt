@@ -118,3 +118,45 @@ pub extend Command with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend Command with Eq::{not_equal, equal}
+
+///|
+pub extend StoreError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend StoreError with Eq::{not_equal, equal}
+
+///|
+pub extend QueueFullPolicy with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend QueueFullPolicy with Eq::{not_equal, equal}
+
+///|
+pub extend JournalConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JournalConfig with Eq::{not_equal, equal}
+
+///|
+pub extend JournalStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JournalStatus with Eq::{not_equal, equal}
+
+///|
+pub extend JournalEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JournalEntry with Eq::{not_equal, equal}
+
+///|
+pub extend LocalStateSnapshot with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LocalStateSnapshot with Eq::{not_equal, equal}
+
+///|
+pub extend StoreCheckpoint with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend StoreCheckpoint with Eq::{not_equal, equal}

@@ -50,6 +50,16 @@ pub fn ProtocolError::equal(Self, Self) -> Bool
 pub fn ProtocolError::not_equal(Self, Self) -> Bool
 pub fn ProtocolError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror StoreError {
+  InvalidCapacity
+  QueueFull
+  EventNotFound(Int)
+  InvalidCheckpoint
+} derive(Eq, @debug.Debug)
+pub fn StoreError::equal(Self, Self) -> Bool
+pub fn StoreError::not_equal(Self, Self) -> Bool
+pub fn StoreError::to_repr(Self) -> @debug.Repr
+
 // Types and methods
 pub(all) struct Command {
   id : CommandId
@@ -131,6 +141,63 @@ pub fn ConfigVersion::equal(Self, Self) -> Bool
 pub fn ConfigVersion::new(value~ : Int) -> Self raise ConfigError
 pub fn ConfigVersion::not_equal(Self, Self) -> Bool
 pub fn ConfigVersion::to_repr(Self) -> @debug.Repr
+
+pub(all) struct JournalConfig {
+  capacity : Int
+  full_policy : QueueFullPolicy
+} derive(Eq, @debug.Debug)
+pub fn JournalConfig::equal(Self, Self) -> Bool
+pub fn JournalConfig::new(capacity~ : Int, full_policy~ : QueueFullPolicy) -> Self raise StoreError
+pub fn JournalConfig::not_equal(Self, Self) -> Bool
+pub fn JournalConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct JournalEntry {
+  sequence : Int
+  envelope : MessageEnvelope
+  mut status : JournalStatus
+  mut attempts : Int
+} derive(Eq, @debug.Debug)
+pub fn JournalEntry::equal(Self, Self) -> Bool
+pub fn JournalEntry::is_pending(Self) -> Bool
+pub fn JournalEntry::not_equal(Self, Self) -> Bool
+pub fn JournalEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) enum JournalStatus {
+  Pending
+  Acknowledged
+} derive(Eq, @debug.Debug)
+pub fn JournalStatus::equal(Self, Self) -> Bool
+pub fn JournalStatus::not_equal(Self, Self) -> Bool
+pub fn JournalStatus::to_repr(Self) -> @debug.Repr
+
+pub(all) struct LocalStateSnapshot {
+  node : Node
+  config : ConfigSnapshot?
+  saved_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn LocalStateSnapshot::equal(Self, Self) -> Bool
+pub fn LocalStateSnapshot::not_equal(Self, Self) -> Bool
+pub fn LocalStateSnapshot::to_repr(Self) -> @debug.Repr
+
+pub(all) struct LocalStore {
+  config : JournalConfig
+  mut state : LocalStateSnapshot?
+  mut journal : Array[JournalEntry]
+  mut next_sequence : Int
+  mut dropped_count : Int
+}
+pub fn LocalStore::acknowledge(Self, sequence~ : Int) -> Unit raise StoreError
+pub fn LocalStore::append_event(Self, envelope~ : MessageEnvelope) -> Int raise StoreError
+pub fn LocalStore::checkpoint(Self) -> StoreCheckpoint
+pub fn LocalStore::dropped_count(Self) -> Int
+pub fn LocalStore::journal_entries(Self) -> Array[JournalEntry]
+pub fn LocalStore::new(config~ : JournalConfig) -> Self
+pub fn LocalStore::pending_count(Self) -> Int
+pub fn LocalStore::pending_events(Self) -> Array[JournalEntry]
+pub fn LocalStore::record_attempt(Self, sequence~ : Int) -> Unit raise StoreError
+pub fn LocalStore::restore(checkpoint~ : StoreCheckpoint) -> Self raise StoreError
+pub fn LocalStore::save_state(Self, snapshot~ : LocalStateSnapshot) -> Unit
+pub fn LocalStore::state(Self) -> LocalStateSnapshot?
 
 pub(all) struct MessageEnvelope {
   version : ProtocolVersion
@@ -218,6 +285,25 @@ pub fn ProtocolVersion::equal(Self, Self) -> Bool
 pub fn ProtocolVersion::new(major~ : Int, minor~ : Int) -> Self raise ProtocolError
 pub fn ProtocolVersion::not_equal(Self, Self) -> Bool
 pub fn ProtocolVersion::to_repr(Self) -> @debug.Repr
+
+pub(all) enum QueueFullPolicy {
+  RejectNew
+  DropOldest
+} derive(Eq, @debug.Debug)
+pub fn QueueFullPolicy::equal(Self, Self) -> Bool
+pub fn QueueFullPolicy::not_equal(Self, Self) -> Bool
+pub fn QueueFullPolicy::to_repr(Self) -> @debug.Repr
+
+pub(all) struct StoreCheckpoint {
+  config : JournalConfig
+  state : LocalStateSnapshot?
+  journal : Array[JournalEntry]
+  next_sequence : Int
+  dropped_count : Int
+} derive(Eq, @debug.Debug)
+pub fn StoreCheckpoint::equal(Self, Self) -> Bool
+pub fn StoreCheckpoint::not_equal(Self, Self) -> Bool
+pub fn StoreCheckpoint::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Timestamp {
   unix_seconds : Int
