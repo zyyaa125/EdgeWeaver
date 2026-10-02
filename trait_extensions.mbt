@@ -226,3 +226,15 @@ pub extend ControlPlane with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend ControlPlane with Eq::{not_equal, equal}
+
+///|
+pub extend ConfigDelivery with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConfigDelivery with Eq::{not_equal, equal}
+
+///|
+pub extend CommandUpdate with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandUpdate with Eq::{not_equal, equal}

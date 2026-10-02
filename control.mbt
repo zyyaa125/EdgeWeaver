@@ -9,6 +9,11 @@ pub(all) suberror ControlError {
   NodeNotEnrolled(NodeId)
   RetiredNode(NodeId)
   StaleHeartbeat
+  StaleConfig(ConfigVersion)
+  DuplicateCommand(CommandId)
+  UnknownCommand(CommandId)
+  CommandTargetMismatch(CommandId)
+  CommandTransition(CommandError)
 } derive(Debug, Eq)
 
 ///|
@@ -44,6 +49,25 @@ pub(all) struct Heartbeat {
 } derive(Debug, Eq)
 
 ///|
+/// A versioned configuration accepted for one node.
+pub(all) struct ConfigDelivery {
+  node_id : NodeId
+  snapshot : ConfigSnapshot
+  delivered_at : Timestamp
+} derive(Debug, Eq)
+
+///|
+/// A lifecycle update requested for a tracked command.
+pub(all) enum CommandUpdate {
+  Accept
+  Start
+  Succeed(String)
+  Fail(String)
+  Reject(String)
+  Expire
+} derive(Debug, Eq)
+
+///|
 /// Creates a heartbeat with a non-empty node identity.
 pub fn Heartbeat::new(
   version~ : ProtocolVersion,
@@ -61,12 +85,14 @@ pub fn Heartbeat::new(
 /// In-memory control-plane registry for enrolled nodes.
 pub(all) struct ControlPlane {
   mut nodes : Array[Node]
+  mut configs : Array[ConfigDelivery]
+  mut commands : Array[Command]
 } derive(Debug, Eq)
 
 ///|
 /// Creates an empty control-plane registry.
 pub fn ControlPlane::new() -> ControlPlane {
-  { nodes: [], }
+  { nodes: [], configs: [], commands: [], }
 }
 
 ///|
@@ -190,6 +216,136 @@ pub fn ControlPlane::lookup(self : ControlPlane, node_id~ : NodeId) -> Node? {
 }
 
 ///|
+/// Accepts a newer configuration version for a registered node.
+pub fn ControlPlane::deliver_config(
+  self : ControlPlane,
+  node_id~ : NodeId,
+  snapshot~ : ConfigSnapshot,
+  at~ : Timestamp,
+) -> ConfigDelivery raise ControlError {
+  ensure_node_id(node_id)
+  ensure_timestamp(at)
+  match self.find_index(node_id~) {
+    None => raise ControlError::UnknownNode(node_id)
+    Some(index) =>
+      if self.nodes[index].lifecycle == NodeLifecycle::Retired {
+        raise ControlError::RetiredNode(node_id)
+      }
+  }
+  match self.find_config_index(node_id~) {
+    Some(index) => {
+      let current = self.configs[index]
+      if !snapshot.supersedes(previous=current.snapshot) {
+        raise ControlError::StaleConfig(current.snapshot.version)
+      }
+      let delivery = { node_id, snapshot, delivered_at: at, }
+      self.configs[index] = delivery
+      delivery
+    }
+    None => {
+      let delivery = { node_id, snapshot, delivered_at: at, }
+      self.configs.push(delivery)
+      delivery
+    }
+  }
+}
+
+///|
+/// Returns the latest configuration accepted for a node.
+pub fn ControlPlane::config(
+  self : ControlPlane,
+  node_id~ : NodeId,
+) -> ConfigDelivery? {
+  match self.find_config_index(node_id~) {
+    Some(index) => Some(self.configs[index])
+    None => None
+  }
+}
+
+///|
+/// Delivers a command to its declared node target.
+pub fn ControlPlane::deliver_command(
+  self : ControlPlane,
+  node_id~ : NodeId,
+  command~ : Command,
+) -> Command raise ControlError {
+  ensure_node_id(node_id)
+  if command.node_id != node_id {
+    raise ControlError::CommandTargetMismatch(command.id)
+  }
+  match self.find_index(node_id~) {
+    None => raise ControlError::UnknownNode(node_id)
+    Some(index) =>
+      if self.nodes[index].lifecycle == NodeLifecycle::Retired {
+        raise ControlError::RetiredNode(node_id)
+      }
+  }
+  for existing in self.commands {
+    if existing.id == command.id {
+      raise ControlError::DuplicateCommand(command.id)
+    }
+  }
+  self.commands.push(command)
+  command
+}
+
+///|
+/// Returns a command tracked by its idempotency key.
+pub fn ControlPlane::command(
+  self : ControlPlane,
+  command_id~ : CommandId,
+) -> Command? {
+  match self.find_command_index(command_id~) {
+    Some(index) => Some(self.commands[index])
+    None => None
+  }
+}
+
+///|
+/// Applies one lifecycle update and retains the resulting command state.
+pub fn ControlPlane::update_command(
+  self : ControlPlane,
+  command_id~ : CommandId,
+  update~ : CommandUpdate,
+  at~ : Timestamp,
+) -> Command raise ControlError {
+  ensure_timestamp(at)
+  let index = match self.find_command_index(command_id~) {
+    Some(index) => index
+    None => raise ControlError::UnknownCommand(command_id)
+  }
+  let current = self.commands[index]
+  let updated = match update {
+    CommandUpdate::Accept =>
+      current.accept(at~) catch {
+        error => raise ControlError::CommandTransition(error)
+      }
+    CommandUpdate::Start =>
+      current.start(at~) catch {
+        error => raise ControlError::CommandTransition(error)
+      }
+    CommandUpdate::Succeed(message) =>
+      current.succeed(at~, message~) catch {
+        error => raise ControlError::CommandTransition(error)
+      }
+    CommandUpdate::Fail(message) =>
+      current.fail(at~, message~) catch {
+        error => raise ControlError::CommandTransition(error)
+      }
+    CommandUpdate::Reject(reason) =>
+      current.reject(at~, reason~) catch {
+        error => raise ControlError::CommandTransition(error)
+      }
+    CommandUpdate::Expire =>
+      current.expire(at~) catch {
+        error => raise ControlError::CommandTransition(error)
+      }
+  }
+  self.commands[index] = updated
+  updated
+}
+
+///|
 fn ensure_supported(version : ProtocolVersion) -> Unit raise ControlError {
   if version != ProtocolVersion::current() {
     raise ControlError::UnsupportedProtocol(version)
@@ -212,9 +368,42 @@ fn control_node_id(value : String) -> NodeId raise ControlError {
 }
 
 ///|
+fn ensure_node_id(node_id : NodeId) -> Unit raise ControlError {
+  if node_id.value == "" {
+    raise ControlError::EmptyNodeId
+  }
+}
+
+///|
 fn ControlPlane::find_index(self : ControlPlane, node_id~ : NodeId) -> Int? {
   for index in 0..<self.nodes.length() {
     if self.nodes[index].id == node_id {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
+fn ControlPlane::find_config_index(
+  self : ControlPlane,
+  node_id~ : NodeId,
+) -> Int? {
+  for index in 0..<self.configs.length() {
+    if self.configs[index].node_id == node_id {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
+fn ControlPlane::find_command_index(
+  self : ControlPlane,
+  command_id~ : CommandId,
+) -> Int? {
+  for index in 0..<self.commands.length() {
+    if self.commands[index].id == command_id {
       return Some(index)
     }
   }

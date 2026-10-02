@@ -39,6 +39,11 @@ pub(all) suberror ControlError {
   NodeNotEnrolled(NodeId)
   RetiredNode(NodeId)
   StaleHeartbeat
+  StaleConfig(ConfigVersion)
+  DuplicateCommand(CommandId)
+  UnknownCommand(CommandId)
+  CommandTargetMismatch(CommandId)
+  CommandTransition(CommandError)
 } derive(Eq, @debug.Debug)
 pub fn ControlError::equal(Self, Self) -> Bool
 pub fn ControlError::not_equal(Self, Self) -> Bool
@@ -147,6 +152,27 @@ pub fn CommandState::equal(Self, Self) -> Bool
 pub fn CommandState::not_equal(Self, Self) -> Bool
 pub fn CommandState::to_repr(Self) -> @debug.Repr
 
+pub(all) enum CommandUpdate {
+  Accept
+  Start
+  Succeed(String)
+  Fail(String)
+  Reject(String)
+  Expire
+} derive(Eq, @debug.Debug)
+pub fn CommandUpdate::equal(Self, Self) -> Bool
+pub fn CommandUpdate::not_equal(Self, Self) -> Bool
+pub fn CommandUpdate::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ConfigDelivery {
+  node_id : NodeId
+  snapshot : ConfigSnapshot
+  delivered_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn ConfigDelivery::equal(Self, Self) -> Bool
+pub fn ConfigDelivery::not_equal(Self, Self) -> Bool
+pub fn ConfigDelivery::to_repr(Self) -> @debug.Repr
+
 pub(all) struct ConfigSnapshot {
   version : ConfigVersion
   content : String
@@ -168,7 +194,13 @@ pub fn ConfigVersion::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ControlPlane {
   mut nodes : Array[Node]
+  mut configs : Array[ConfigDelivery]
+  mut commands : Array[Command]
 } derive(Eq, @debug.Debug)
+pub fn ControlPlane::command(Self, command_id~ : CommandId) -> Command?
+pub fn ControlPlane::config(Self, node_id~ : NodeId) -> ConfigDelivery?
+pub fn ControlPlane::deliver_command(Self, node_id~ : NodeId, command~ : Command) -> Command raise ControlError
+pub fn ControlPlane::deliver_config(Self, node_id~ : NodeId, snapshot~ : ConfigSnapshot, at~ : Timestamp) -> ConfigDelivery raise ControlError
 pub fn ControlPlane::enroll(Self, request~ : EnrollmentRequest) -> Node raise ControlError
 pub fn ControlPlane::equal(Self, Self) -> Bool
 pub fn ControlPlane::lookup(Self, node_id~ : NodeId) -> Node?
@@ -177,6 +209,7 @@ pub fn ControlPlane::new() -> Self
 pub fn ControlPlane::not_equal(Self, Self) -> Bool
 pub fn ControlPlane::receive_heartbeat(Self, heartbeat~ : Heartbeat) -> Node raise ControlError
 pub fn ControlPlane::to_repr(Self) -> @debug.Repr
+pub fn ControlPlane::update_command(Self, command_id~ : CommandId, update~ : CommandUpdate, at~ : Timestamp) -> Command raise ControlError
 
 pub(all) struct EnrollmentRequest {
   version : ProtocolVersion
