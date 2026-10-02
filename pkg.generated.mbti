@@ -121,6 +121,23 @@ pub fn SyncError::equal(Self, Self) -> Bool
 pub fn SyncError::not_equal(Self, Self) -> Bool
 pub fn SyncError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror TransportError {
+  InvalidBaseDelay
+  InvalidMaxDelay
+  InvalidAttemptLimit
+  InvalidTimestamp
+  InvalidState(ConnectionState)
+  RetryNotReady(Timestamp)
+  RetryExhausted
+  UnsupportedProtocol(ProtocolVersion)
+  NoSharedCapability
+  SyncNotReady
+  Store(StoreError)
+} derive(Eq, @debug.Debug)
+pub fn TransportError::equal(Self, Self) -> Bool
+pub fn TransportError::not_equal(Self, Self) -> Bool
+pub fn TransportError::to_repr(Self) -> @debug.Repr
+
 // Types and methods
 pub(all) enum AllowedAction {
   ApplyConfig
@@ -166,6 +183,26 @@ pub fn AutonomyRule::equal(Self, Self) -> Bool
 pub fn AutonomyRule::new(id~ : String, condition~ : PolicyCondition, action~ : CommandAction, valid_from~ : Timestamp, valid_until~ : Timestamp, max_triggers~ : Int) -> Self raise PolicyError
 pub fn AutonomyRule::not_equal(Self, Self) -> Bool
 pub fn AutonomyRule::to_repr(Self) -> @debug.Repr
+
+pub(all) struct BackoffPolicy {
+  base_delay : Int
+  max_delay : Int
+  max_attempts : Int
+} derive(Eq, @debug.Debug)
+pub fn BackoffPolicy::delay_for(Self, attempt~ : Int) -> Int raise TransportError
+pub fn BackoffPolicy::equal(Self, Self) -> Bool
+pub fn BackoffPolicy::new(base_delay~ : Int, max_delay~ : Int, max_attempts~ : Int) -> Self raise TransportError
+pub fn BackoffPolicy::not_equal(Self, Self) -> Bool
+pub fn BackoffPolicy::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CapabilityAdvertisement {
+  protocol : ProtocolVersion
+  capabilities : Array[TransportCapability]
+} derive(Eq, @debug.Debug)
+pub fn CapabilityAdvertisement::equal(Self, Self) -> Bool
+pub fn CapabilityAdvertisement::new(protocol~ : ProtocolVersion, capabilities~ : Array[TransportCapability]) -> Self
+pub fn CapabilityAdvertisement::not_equal(Self, Self) -> Bool
+pub fn CapabilityAdvertisement::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Command {
   id : CommandId
@@ -277,6 +314,16 @@ pub fn ConfigVersion::equal(Self, Self) -> Bool
 pub fn ConfigVersion::new(value~ : Int) -> Self raise ConfigError
 pub fn ConfigVersion::not_equal(Self, Self) -> Bool
 pub fn ConfigVersion::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ConnectionState {
+  Disconnected
+  Connecting
+  Connected
+  Backoff
+} derive(Eq, @debug.Debug)
+pub fn ConnectionState::equal(Self, Self) -> Bool
+pub fn ConnectionState::not_equal(Self, Self) -> Bool
+pub fn ConnectionState::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ControlPlane {
   mut nodes : Array[Node]
@@ -447,6 +494,14 @@ pub(all) enum MessagePayload {
 pub fn MessagePayload::equal(Self, Self) -> Bool
 pub fn MessagePayload::not_equal(Self, Self) -> Bool
 pub fn MessagePayload::to_repr(Self) -> @debug.Repr
+
+pub(all) struct NegotiatedLink {
+  protocol : ProtocolVersion
+  capabilities : Array[TransportCapability]
+} derive(Eq, @debug.Debug)
+pub fn NegotiatedLink::equal(Self, Self) -> Bool
+pub fn NegotiatedLink::not_equal(Self, Self) -> Bool
+pub fn NegotiatedLink::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Node {
   id : NodeId
@@ -619,6 +674,41 @@ pub fn Timestamp::equal(Self, Self) -> Bool
 pub fn Timestamp::new(unix_seconds~ : Int) -> Self raise NodeError
 pub fn Timestamp::not_equal(Self, Self) -> Bool
 pub fn Timestamp::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TransportCapability {
+  EventReplay
+  Heartbeat
+  Telemetry
+  Command
+  Config
+} derive(Eq, @debug.Debug)
+pub fn TransportCapability::equal(Self, Self) -> Bool
+pub fn TransportCapability::not_equal(Self, Self) -> Bool
+pub fn TransportCapability::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TransportManager {
+  protocol : ProtocolVersion
+  capabilities : Array[TransportCapability]
+  backoff : BackoffPolicy
+  mut state : ConnectionState
+  mut attempts : Int
+  mut next_retry_at : Timestamp?
+  mut negotiated : NegotiatedLink?
+  mut cursor : SyncCursor
+} derive(Eq, @debug.Debug)
+pub fn TransportManager::begin_connect(Self, at~ : Timestamp) -> Unit raise TransportError
+pub fn TransportManager::disconnect(Self, at~ : Timestamp) -> Unit raise TransportError
+pub fn TransportManager::equal(Self, Self) -> Bool
+pub fn TransportManager::handshake(Self, peer~ : CapabilityAdvertisement) -> NegotiatedLink raise TransportError
+pub fn TransportManager::has_capability(Self, capability~ : TransportCapability) -> Bool
+pub fn TransportManager::negotiated(Self) -> NegotiatedLink?
+pub fn TransportManager::new(protocol~ : ProtocolVersion, capabilities~ : Array[TransportCapability], backoff~ : BackoffPolicy) -> Self raise TransportError
+pub fn TransportManager::next_retry_at(Self) -> Timestamp?
+pub fn TransportManager::not_equal(Self, Self) -> Bool
+pub fn TransportManager::replay_pending(Self, LocalStore, config~ : SyncConfig, sender~ : (MessageEnvelope) -> SyncSendResult) -> ReplayReport raise TransportError
+pub fn TransportManager::state(Self) -> ConnectionState
+pub fn TransportManager::sync_cursor(Self) -> SyncCursor
+pub fn TransportManager::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

@@ -322,3 +322,45 @@ pub extend AutonomyEngine with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend AutonomyEngine with Eq::{not_equal, equal}
+
+///|
+pub extend TransportError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransportError with Eq::{not_equal, equal}
+
+///|
+pub extend ConnectionState with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConnectionState with Eq::{not_equal, equal}
+
+///|
+pub extend TransportCapability with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransportCapability with Eq::{not_equal, equal}
+
+///|
+pub extend BackoffPolicy with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BackoffPolicy with Eq::{not_equal, equal}
+
+///|
+pub extend CapabilityAdvertisement with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CapabilityAdvertisement with Eq::{not_equal, equal}
+
+///|
+pub extend NegotiatedLink with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend NegotiatedLink with Eq::{not_equal, equal}
+
+///|
+pub extend TransportManager with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransportManager with Eq::{not_equal, equal}
