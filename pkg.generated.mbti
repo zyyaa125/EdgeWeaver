@@ -77,6 +77,20 @@ pub fn NodeError::equal(Self, Self) -> Bool
 pub fn NodeError::not_equal(Self, Self) -> Bool
 pub fn NodeError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror PolicyError {
+  EmptyRuleId
+  EmptyAction
+  InvalidWindow
+  InvalidMaxTriggers
+  InvalidOfflineDuration
+  InvalidTimestamp
+  DuplicateRuleId(String)
+  ActionNotAllowed(CommandAction)
+} derive(Eq, @debug.Debug)
+pub fn PolicyError::equal(Self, Self) -> Bool
+pub fn PolicyError::not_equal(Self, Self) -> Bool
+pub fn PolicyError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror ProtocolError {
   InvalidVersion
   UnsupportedVersion(ProtocolVersion)
@@ -116,6 +130,42 @@ pub(all) enum AllowedAction {
 pub fn AllowedAction::equal(Self, Self) -> Bool
 pub fn AllowedAction::not_equal(Self, Self) -> Bool
 pub fn AllowedAction::to_repr(Self) -> @debug.Repr
+
+pub(all) struct AutonomyContext {
+  lifecycle : NodeLifecycle
+  health : NodeHealth
+  offline_for : Int
+} derive(Eq, @debug.Debug)
+pub fn AutonomyContext::equal(Self, Self) -> Bool
+pub fn AutonomyContext::new(lifecycle~ : NodeLifecycle, health~ : NodeHealth, offline_for~ : Int) -> Self raise PolicyError
+pub fn AutonomyContext::not_equal(Self, Self) -> Bool
+pub fn AutonomyContext::to_repr(Self) -> @debug.Repr
+
+pub(all) struct AutonomyEngine {
+  allowlist : CommandAllowlist
+  mut rules : Array[AutonomyRule]
+} derive(Eq, @debug.Debug)
+pub fn AutonomyEngine::checkpoint(Self) -> Array[AutonomyRule]
+pub fn AutonomyEngine::equal(Self, Self) -> Bool
+pub fn AutonomyEngine::evaluate(Self, context~ : AutonomyContext, at~ : Timestamp) -> PolicyDecision raise PolicyError
+pub fn AutonomyEngine::new(allowlist~ : CommandAllowlist, rules~ : Array[AutonomyRule]) -> Self raise PolicyError
+pub fn AutonomyEngine::not_equal(Self, Self) -> Bool
+pub fn AutonomyEngine::restore(allowlist~ : CommandAllowlist, rules~ : Array[AutonomyRule]) -> Self raise PolicyError
+pub fn AutonomyEngine::to_repr(Self) -> @debug.Repr
+
+pub(all) struct AutonomyRule {
+  id : String
+  condition : PolicyCondition
+  action : CommandAction
+  valid_from : Timestamp
+  valid_until : Timestamp
+  max_triggers : Int
+  mut fired_count : Int
+} derive(Eq, @debug.Debug)
+pub fn AutonomyRule::equal(Self, Self) -> Bool
+pub fn AutonomyRule::new(id~ : String, condition~ : PolicyCondition, action~ : CommandAction, valid_from~ : Timestamp, valid_until~ : Timestamp, max_triggers~ : Int) -> Self raise PolicyError
+pub fn AutonomyRule::not_equal(Self, Self) -> Bool
+pub fn AutonomyRule::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Command {
   id : CommandId
@@ -451,6 +501,22 @@ pub(all) enum NodeLifecycle {
 pub fn NodeLifecycle::equal(Self, Self) -> Bool
 pub fn NodeLifecycle::not_equal(Self, Self) -> Bool
 pub fn NodeLifecycle::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PolicyCondition {
+  OfflineFor(Int)
+  HealthIs(NodeHealth)
+} derive(Eq, @debug.Debug)
+pub fn PolicyCondition::equal(Self, Self) -> Bool
+pub fn PolicyCondition::not_equal(Self, Self) -> Bool
+pub fn PolicyCondition::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PolicyDecision {
+  SafeDefault
+  Execute(String, CommandAction)
+} derive(Eq, @debug.Debug)
+pub fn PolicyDecision::equal(Self, Self) -> Bool
+pub fn PolicyDecision::not_equal(Self, Self) -> Bool
+pub fn PolicyDecision::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ProtocolVersion {
   major : Int

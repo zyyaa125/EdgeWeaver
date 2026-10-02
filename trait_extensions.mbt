@@ -286,3 +286,39 @@ pub extend EdgeExecutor with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend EdgeExecutor with Eq::{not_equal, equal}
+
+///|
+pub extend PolicyError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PolicyError with Eq::{not_equal, equal}
+
+///|
+pub extend PolicyCondition with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PolicyCondition with Eq::{not_equal, equal}
+
+///|
+pub extend AutonomyRule with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AutonomyRule with Eq::{not_equal, equal}
+
+///|
+pub extend AutonomyContext with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AutonomyContext with Eq::{not_equal, equal}
+
+///|
+pub extend PolicyDecision with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PolicyDecision with Eq::{not_equal, equal}
+
+///|
+pub extend AutonomyEngine with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AutonomyEngine with Eq::{not_equal, equal}
