@@ -49,6 +49,24 @@ pub fn ControlError::equal(Self, Self) -> Bool
 pub fn ControlError::not_equal(Self, Self) -> Bool
 pub fn ControlError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror EdgeError {
+  EmptyAllowlistedAction
+  InvalidTimestamp
+  NodeNotReady(NodeLifecycle)
+  RetiredNode(NodeId)
+  CommandTargetMismatch(CommandId)
+  ActionNotAllowed(CommandAction)
+  MissingCapability(NodeCapability)
+  ExpiredCommand(CommandId)
+  CommandNotExecutable(CommandState)
+  ExecutionInProgress(CommandId)
+  EmptyResultMessage
+  CommandTransition(CommandError)
+} derive(Eq, @debug.Debug)
+pub fn EdgeError::equal(Self, Self) -> Bool
+pub fn EdgeError::not_equal(Self, Self) -> Bool
+pub fn EdgeError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror NodeError {
   EmptyNodeId
   InvalidTimestamp
@@ -90,6 +108,15 @@ pub fn SyncError::not_equal(Self, Self) -> Bool
 pub fn SyncError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub(all) enum AllowedAction {
+  ApplyConfig
+  ReadTelemetry
+  Execute(String)
+} derive(Eq, @debug.Debug)
+pub fn AllowedAction::equal(Self, Self) -> Bool
+pub fn AllowedAction::not_equal(Self, Self) -> Bool
+pub fn AllowedAction::to_repr(Self) -> @debug.Repr
+
 pub(all) struct Command {
   id : CommandId
   node_id : NodeId
@@ -120,6 +147,15 @@ pub(all) enum CommandAction {
 pub fn CommandAction::equal(Self, Self) -> Bool
 pub fn CommandAction::not_equal(Self, Self) -> Bool
 pub fn CommandAction::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CommandAllowlist {
+  actions : Array[AllowedAction]
+} derive(Eq, @debug.Debug)
+pub fn CommandAllowlist::allows(Self, action~ : CommandAction) -> Bool
+pub fn CommandAllowlist::equal(Self, Self) -> Bool
+pub fn CommandAllowlist::new(actions~ : Array[AllowedAction]) -> Self raise EdgeError
+pub fn CommandAllowlist::not_equal(Self, Self) -> Bool
+pub fn CommandAllowlist::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CommandId {
   value : String
@@ -211,6 +247,21 @@ pub fn ControlPlane::receive_heartbeat(Self, heartbeat~ : Heartbeat) -> Node rai
 pub fn ControlPlane::to_repr(Self) -> @debug.Repr
 pub fn ControlPlane::update_command(Self, command_id~ : CommandId, update~ : CommandUpdate, at~ : Timestamp) -> Command raise ControlError
 
+pub(all) struct EdgeExecutor {
+  node : Node
+  allowlist : CommandAllowlist
+  mut records : Array[ExecutionRecord]
+} derive(Eq, @debug.Debug)
+pub fn EdgeExecutor::checkpoint(Self) -> ExecutionCheckpoint
+pub fn EdgeExecutor::equal(Self, Self) -> Bool
+pub fn EdgeExecutor::execute(Self, command~ : Command, at~ : Timestamp, runner~ : (CommandAction) -> ExecutionResult) -> ExecutionRecord raise EdgeError
+pub fn EdgeExecutor::new(node~ : Node, allowlist~ : CommandAllowlist) -> Self
+pub fn EdgeExecutor::not_equal(Self, Self) -> Bool
+pub fn EdgeExecutor::record(Self, command_id~ : CommandId) -> ExecutionRecord?
+pub fn EdgeExecutor::records(Self) -> Array[ExecutionRecord]
+pub fn EdgeExecutor::restore(node~ : Node, allowlist~ : CommandAllowlist, checkpoint~ : ExecutionCheckpoint) -> Self
+pub fn EdgeExecutor::to_repr(Self) -> @debug.Repr
+
 pub(all) struct EnrollmentRequest {
   version : ProtocolVersion
   node_id : String
@@ -221,6 +272,41 @@ pub fn EnrollmentRequest::equal(Self, Self) -> Bool
 pub fn EnrollmentRequest::new(version~ : ProtocolVersion, node_id~ : String, capabilities~ : Array[NodeCapability], at~ : Timestamp) -> Self raise ControlError
 pub fn EnrollmentRequest::not_equal(Self, Self) -> Bool
 pub fn EnrollmentRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ExecutionCheckpoint {
+  records : Array[ExecutionRecord]
+} derive(Eq, @debug.Debug)
+pub fn ExecutionCheckpoint::equal(Self, Self) -> Bool
+pub fn ExecutionCheckpoint::not_equal(Self, Self) -> Bool
+pub fn ExecutionCheckpoint::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ExecutionRecord {
+  command : Command
+  status : ExecutionStatus
+  message : String
+  started_at : Timestamp
+  completed_at : Timestamp?
+} derive(Eq, @debug.Debug)
+pub fn ExecutionRecord::equal(Self, Self) -> Bool
+pub fn ExecutionRecord::not_equal(Self, Self) -> Bool
+pub fn ExecutionRecord::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ExecutionResult {
+  Succeeded(String)
+  Failed(String)
+} derive(Eq, @debug.Debug)
+pub fn ExecutionResult::equal(Self, Self) -> Bool
+pub fn ExecutionResult::not_equal(Self, Self) -> Bool
+pub fn ExecutionResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ExecutionStatus {
+  InProgress
+  Succeeded
+  Failed
+} derive(Eq, @debug.Debug)
+pub fn ExecutionStatus::equal(Self, Self) -> Bool
+pub fn ExecutionStatus::not_equal(Self, Self) -> Bool
+pub fn ExecutionStatus::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Heartbeat {
   version : ProtocolVersion

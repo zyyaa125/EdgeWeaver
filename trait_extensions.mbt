@@ -238,3 +238,51 @@ pub extend CommandUpdate with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend CommandUpdate with Eq::{not_equal, equal}
+
+///|
+pub extend EdgeError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EdgeError with Eq::{not_equal, equal}
+
+///|
+pub extend AllowedAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AllowedAction with Eq::{not_equal, equal}
+
+///|
+pub extend CommandAllowlist with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CommandAllowlist with Eq::{not_equal, equal}
+
+///|
+pub extend ExecutionResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ExecutionResult with Eq::{not_equal, equal}
+
+///|
+pub extend ExecutionStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ExecutionStatus with Eq::{not_equal, equal}
+
+///|
+pub extend ExecutionRecord with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ExecutionRecord with Eq::{not_equal, equal}
+
+///|
+pub extend ExecutionCheckpoint with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ExecutionCheckpoint with Eq::{not_equal, equal}
+
+///|
+pub extend EdgeExecutor with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EdgeExecutor with Eq::{not_equal, equal}
