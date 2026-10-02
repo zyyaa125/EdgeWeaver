@@ -30,6 +30,20 @@ pub fn ConfigError::equal(Self, Self) -> Bool
 pub fn ConfigError::not_equal(Self, Self) -> Bool
 pub fn ConfigError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror ControlError {
+  EmptyNodeId
+  InvalidTimestamp
+  UnsupportedProtocol(ProtocolVersion)
+  DuplicateNode(NodeId)
+  UnknownNode(NodeId)
+  NodeNotEnrolled(NodeId)
+  RetiredNode(NodeId)
+  StaleHeartbeat
+} derive(Eq, @debug.Debug)
+pub fn ControlError::equal(Self, Self) -> Bool
+pub fn ControlError::not_equal(Self, Self) -> Bool
+pub fn ControlError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror NodeError {
   EmptyNodeId
   InvalidTimestamp
@@ -151,6 +165,40 @@ pub fn ConfigVersion::equal(Self, Self) -> Bool
 pub fn ConfigVersion::new(value~ : Int) -> Self raise ConfigError
 pub fn ConfigVersion::not_equal(Self, Self) -> Bool
 pub fn ConfigVersion::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ControlPlane {
+  mut nodes : Array[Node]
+} derive(Eq, @debug.Debug)
+pub fn ControlPlane::enroll(Self, request~ : EnrollmentRequest) -> Node raise ControlError
+pub fn ControlPlane::equal(Self, Self) -> Bool
+pub fn ControlPlane::lookup(Self, node_id~ : NodeId) -> Node?
+pub fn ControlPlane::mark_offline(Self, node_id~ : NodeId, at~ : Timestamp) -> Node raise ControlError
+pub fn ControlPlane::new() -> Self
+pub fn ControlPlane::not_equal(Self, Self) -> Bool
+pub fn ControlPlane::receive_heartbeat(Self, heartbeat~ : Heartbeat) -> Node raise ControlError
+pub fn ControlPlane::to_repr(Self) -> @debug.Repr
+
+pub(all) struct EnrollmentRequest {
+  version : ProtocolVersion
+  node_id : String
+  capabilities : Array[NodeCapability]
+  at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn EnrollmentRequest::equal(Self, Self) -> Bool
+pub fn EnrollmentRequest::new(version~ : ProtocolVersion, node_id~ : String, capabilities~ : Array[NodeCapability], at~ : Timestamp) -> Self raise ControlError
+pub fn EnrollmentRequest::not_equal(Self, Self) -> Bool
+pub fn EnrollmentRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Heartbeat {
+  version : ProtocolVersion
+  node_id : String
+  health : NodeHealth
+  at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn Heartbeat::equal(Self, Self) -> Bool
+pub fn Heartbeat::new(version~ : ProtocolVersion, node_id~ : String, health~ : NodeHealth, at~ : Timestamp) -> Self raise ControlError
+pub fn Heartbeat::not_equal(Self, Self) -> Bool
+pub fn Heartbeat::to_repr(Self) -> @debug.Repr
 
 pub(all) struct JournalConfig {
   capacity : Int

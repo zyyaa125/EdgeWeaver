@@ -202,3 +202,27 @@ pub extend ReplayReport with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend ReplayReport with Eq::{not_equal, equal}
+
+///|
+pub extend ControlError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ControlError with Eq::{not_equal, equal}
+
+///|
+pub extend EnrollmentRequest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EnrollmentRequest with Eq::{not_equal, equal}
+
+///|
+pub extend Heartbeat with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Heartbeat with Eq::{not_equal, equal}
+
+///|
+pub extend ControlPlane with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ControlPlane with Eq::{not_equal, equal}
