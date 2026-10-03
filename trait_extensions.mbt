@@ -364,3 +364,45 @@ pub extend TransportManager with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend TransportManager with Eq::{not_equal, equal}
+
+///|
+pub extend AdapterError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AdapterError with Eq::{not_equal, equal}
+
+///|
+pub extend SensorReading with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SensorReading with Eq::{not_equal, equal}
+
+///|
+pub extend SensorAdapter with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SensorAdapter with Eq::{not_equal, equal}
+
+///|
+pub extend ActuatorResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ActuatorResult with Eq::{not_equal, equal}
+
+///|
+pub extend ActuatorAdapter with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ActuatorAdapter with Eq::{not_equal, equal}
+
+///|
+pub extend DeviceSnapshot with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DeviceSnapshot with Eq::{not_equal, equal}
+
+///|
+pub extend DeviceSimulator with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DeviceSimulator with Eq::{not_equal, equal}

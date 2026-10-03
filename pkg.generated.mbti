@@ -9,6 +9,22 @@ import {
 pub fn replay_pending(LocalStore, config~ : SyncConfig, cursor~ : SyncCursor, sender~ : (MessageEnvelope) -> SyncSendResult) -> ReplayReport raise StoreError
 
 // Errors
+pub(all) suberror AdapterError {
+  EmptyNodeId
+  EmptyAdapterId
+  EmptyUnit
+  EmptyAction
+  EmptyActionSet
+  DuplicateAdapterId(String)
+  UnknownSensor(String)
+  UnknownActuator(String)
+  ActionNotAllowed(String)
+  InvalidTimestamp
+} derive(Eq, @debug.Debug)
+pub fn AdapterError::equal(Self, Self) -> Bool
+pub fn AdapterError::not_equal(Self, Self) -> Bool
+pub fn AdapterError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror CommandError {
   EmptyCommandId
   EmptyAction
@@ -139,6 +155,27 @@ pub fn TransportError::not_equal(Self, Self) -> Bool
 pub fn TransportError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub(all) struct ActuatorAdapter {
+  id : String
+  allowed_actions : Array[String]
+  mut state : String
+} derive(Eq, @debug.Debug)
+pub fn ActuatorAdapter::equal(Self, Self) -> Bool
+pub fn ActuatorAdapter::execute(Self, action~ : String, at~ : Timestamp) -> ActuatorResult raise AdapterError
+pub fn ActuatorAdapter::new(id~ : String, allowed_actions~ : Array[String], initial_state~ : String) -> Self raise AdapterError
+pub fn ActuatorAdapter::not_equal(Self, Self) -> Bool
+pub fn ActuatorAdapter::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ActuatorResult {
+  actuator_id : String
+  action : String
+  state : String
+  executed_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn ActuatorResult::equal(Self, Self) -> Bool
+pub fn ActuatorResult::not_equal(Self, Self) -> Bool
+pub fn ActuatorResult::to_repr(Self) -> @debug.Repr
+
 pub(all) enum AllowedAction {
   ApplyConfig
   ReadTelemetry
@@ -343,6 +380,30 @@ pub fn ControlPlane::not_equal(Self, Self) -> Bool
 pub fn ControlPlane::receive_heartbeat(Self, heartbeat~ : Heartbeat) -> Node raise ControlError
 pub fn ControlPlane::to_repr(Self) -> @debug.Repr
 pub fn ControlPlane::update_command(Self, command_id~ : CommandId, update~ : CommandUpdate, at~ : Timestamp) -> Command raise ControlError
+
+pub(all) struct DeviceSimulator {
+  node_id : NodeId
+  mut sensors : Array[SensorAdapter]
+  mut actuators : Array[ActuatorAdapter]
+} derive(Eq, @debug.Debug)
+pub fn DeviceSimulator::equal(Self, Self) -> Bool
+pub fn DeviceSimulator::execute_actuator(Self, actuator_id~ : String, action~ : String, at~ : Timestamp) -> ActuatorResult raise AdapterError
+pub fn DeviceSimulator::new(node_id~ : NodeId, sensors~ : Array[SensorAdapter], actuators~ : Array[ActuatorAdapter]) -> Self raise AdapterError
+pub fn DeviceSimulator::not_equal(Self, Self) -> Bool
+pub fn DeviceSimulator::read_all(Self, at~ : Timestamp) -> Array[SensorReading] raise AdapterError
+pub fn DeviceSimulator::read_sensor(Self, sensor_id~ : String, at~ : Timestamp) -> SensorReading raise AdapterError
+pub fn DeviceSimulator::restore(snapshot~ : DeviceSnapshot) -> Self
+pub fn DeviceSimulator::snapshot(Self) -> DeviceSnapshot
+pub fn DeviceSimulator::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DeviceSnapshot {
+  node_id : NodeId
+  sensors : Array[SensorAdapter]
+  actuators : Array[ActuatorAdapter]
+} derive(Eq, @debug.Debug)
+pub fn DeviceSnapshot::equal(Self, Self) -> Bool
+pub fn DeviceSnapshot::not_equal(Self, Self) -> Bool
+pub fn DeviceSnapshot::to_repr(Self) -> @debug.Repr
 
 pub(all) struct EdgeExecutor {
   node : Node
@@ -626,6 +687,28 @@ pub(all) struct ReplayReport {
 pub fn ReplayReport::equal(Self, Self) -> Bool
 pub fn ReplayReport::not_equal(Self, Self) -> Bool
 pub fn ReplayReport::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SensorAdapter {
+  id : String
+  unit : String
+  mut value : Int
+  step : Int
+} derive(Eq, @debug.Debug)
+pub fn SensorAdapter::equal(Self, Self) -> Bool
+pub fn SensorAdapter::new(id~ : String, unit~ : String, initial_value~ : Int, step~ : Int) -> Self raise AdapterError
+pub fn SensorAdapter::not_equal(Self, Self) -> Bool
+pub fn SensorAdapter::read(Self, at~ : Timestamp) -> SensorReading raise AdapterError
+pub fn SensorAdapter::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SensorReading {
+  sensor_id : String
+  value : Int
+  unit : String
+  captured_at : Timestamp
+} derive(Eq, @debug.Debug)
+pub fn SensorReading::equal(Self, Self) -> Bool
+pub fn SensorReading::not_equal(Self, Self) -> Bool
+pub fn SensorReading::to_repr(Self) -> @debug.Repr
 
 pub(all) struct StoreCheckpoint {
   config : JournalConfig
