@@ -65,6 +65,16 @@ pub fn ControlError::equal(Self, Self) -> Bool
 pub fn ControlError::not_equal(Self, Self) -> Bool
 pub fn ControlError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror DiagnosticsError {
+  InvalidLogLimit
+  EmptyComponent
+  EmptyMessage
+  InvalidTimestamp
+} derive(Eq, @debug.Debug)
+pub fn DiagnosticsError::equal(Self, Self) -> Bool
+pub fn DiagnosticsError::not_equal(Self, Self) -> Bool
+pub fn DiagnosticsError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror EdgeError {
   EmptyAllowlistedAction
   InvalidTimestamp
@@ -405,6 +415,33 @@ pub fn DeviceSnapshot::equal(Self, Self) -> Bool
 pub fn DeviceSnapshot::not_equal(Self, Self) -> Bool
 pub fn DeviceSnapshot::to_repr(Self) -> @debug.Repr
 
+pub(all) struct DiagnosticEvent {
+  at : Timestamp
+  level : LogLevel
+  component : String
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn DiagnosticEvent::equal(Self, Self) -> Bool
+pub fn DiagnosticEvent::not_equal(Self, Self) -> Bool
+pub fn DiagnosticEvent::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DiagnosticsCollector {
+  max_logs : Int
+  mut logs : Array[DiagnosticEvent]
+  mut sync_failures : Int
+  mut last_sync_error : String?
+  mut last_policy_decision : PolicyDecision
+} derive(Eq, @debug.Debug)
+pub fn DiagnosticsCollector::equal(Self, Self) -> Bool
+pub fn DiagnosticsCollector::events(Self) -> Array[DiagnosticEvent]
+pub fn DiagnosticsCollector::new(max_logs~ : Int) -> Self raise DiagnosticsError
+pub fn DiagnosticsCollector::not_equal(Self, Self) -> Bool
+pub fn DiagnosticsCollector::record_event(Self, at~ : Timestamp, level~ : LogLevel, component~ : String, message~ : String) -> Unit raise DiagnosticsError
+pub fn DiagnosticsCollector::record_policy_decision(Self, at~ : Timestamp, decision~ : PolicyDecision) -> Unit raise DiagnosticsError
+pub fn DiagnosticsCollector::record_sync_failure(Self, at~ : Timestamp, message~ : String) -> Unit raise DiagnosticsError
+pub fn DiagnosticsCollector::snapshot(Self, node~ : Node, store~ : LocalStore, transport~ : TransportManager, executor~ : EdgeExecutor, at~ : Timestamp) -> LocalDiagnostics raise DiagnosticsError
+pub fn DiagnosticsCollector::to_repr(Self) -> @debug.Repr
+
 pub(all) struct EdgeExecutor {
   node : Node
   allowlist : CommandAllowlist
@@ -505,6 +542,27 @@ pub fn JournalStatus::equal(Self, Self) -> Bool
 pub fn JournalStatus::not_equal(Self, Self) -> Bool
 pub fn JournalStatus::to_repr(Self) -> @debug.Repr
 
+pub(all) struct LocalDiagnostics {
+  node_id : NodeId
+  lifecycle : NodeLifecycle
+  health : NodeHealth
+  captured_at : Timestamp
+  pending_events : Int
+  dropped_events : Int
+  sync_failures : Int
+  last_sync_error : String?
+  sync_cursor : SyncCursor
+  connection_state : ConnectionState
+  negotiated_capabilities : Array[TransportCapability]
+  next_retry_at : Timestamp?
+  policy_decision : PolicyDecision
+  execution_records : Int
+  events : Array[DiagnosticEvent]
+} derive(Eq, @debug.Debug)
+pub fn LocalDiagnostics::equal(Self, Self) -> Bool
+pub fn LocalDiagnostics::not_equal(Self, Self) -> Bool
+pub fn LocalDiagnostics::to_repr(Self) -> @debug.Repr
+
 pub(all) struct LocalStateSnapshot {
   node : Node
   config : ConfigSnapshot?
@@ -533,6 +591,16 @@ pub fn LocalStore::record_attempt(Self, sequence~ : Int) -> Unit raise StoreErro
 pub fn LocalStore::restore(checkpoint~ : StoreCheckpoint) -> Self raise StoreError
 pub fn LocalStore::save_state(Self, snapshot~ : LocalStateSnapshot) -> Unit
 pub fn LocalStore::state(Self) -> LocalStateSnapshot?
+
+pub(all) enum LogLevel {
+  Debug
+  Info
+  Warn
+  Error
+} derive(Eq, @debug.Debug)
+pub fn LogLevel::equal(Self, Self) -> Bool
+pub fn LogLevel::not_equal(Self, Self) -> Bool
+pub fn LogLevel::to_repr(Self) -> @debug.Repr
 
 pub(all) struct MessageEnvelope {
   version : ProtocolVersion

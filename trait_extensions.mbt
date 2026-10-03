@@ -366,6 +366,36 @@ pub extend TransportManager with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend TransportManager with Eq::{not_equal, equal}
 
 ///|
+pub extend DiagnosticsError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DiagnosticsError with Eq::{not_equal, equal}
+
+///|
+pub extend LogLevel with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LogLevel with Eq::{not_equal, equal}
+
+///|
+pub extend DiagnosticEvent with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DiagnosticEvent with Eq::{not_equal, equal}
+
+///|
+pub extend DiagnosticsCollector with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DiagnosticsCollector with Eq::{not_equal, equal}
+
+///|
+pub extend LocalDiagnostics with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LocalDiagnostics with Eq::{not_equal, equal}
+
+///|
 pub extend AdapterError with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
