@@ -1,0 +1,13 @@
+# EdgeWeaver edge node profile.
+profile = "node"
+target = "linux-native"
+network = "reconnectable"
+data_dir = "/var/lib/edgeweaver/node"
+config_path = "/etc/edgeweaver/node.toml"
+journal_dir = "/var/lib/edgeweaver/node/events"
+diagnostics_dir = "/var/lib/edgeweaver/node/diagnostics"
+
+[resources]
+max_pending_events = 1024
+max_log_entries = 256
+max_reconnect_attempts = 8

@@ -396,6 +396,48 @@ pub extend LocalDiagnostics with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend LocalDiagnostics with Eq::{not_equal, equal}
 
 ///|
+pub extend DeployError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DeployError with Eq::{not_equal, equal}
+
+///|
+pub extend RunProfileKind with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RunProfileKind with Eq::{not_equal, equal}
+
+///|
+pub extend DeploymentTarget with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DeploymentTarget with Eq::{not_equal, equal}
+
+///|
+pub extend NetworkMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend NetworkMode with Eq::{not_equal, equal}
+
+///|
+pub extend ResourceLimits with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ResourceLimits with Eq::{not_equal, equal}
+
+///|
+pub extend RunProfile with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RunProfile with Eq::{not_equal, equal}
+
+///|
+pub extend LaunchOptions with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LaunchOptions with Eq::{not_equal, equal}
+
+///|
 pub extend AdapterError with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|

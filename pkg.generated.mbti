@@ -65,6 +65,17 @@ pub fn ControlError::equal(Self, Self) -> Bool
 pub fn ControlError::not_equal(Self, Self) -> Bool
 pub fn ControlError::to_repr(Self) -> @debug.Repr
 
+pub(all) suberror DeployError {
+  EmptyPath
+  InvalidResourceLimit
+  UnknownArgument(String)
+  MissingArgument(String)
+  InvalidProfile(String)
+} derive(Eq, @debug.Debug)
+pub fn DeployError::equal(Self, Self) -> Bool
+pub fn DeployError::not_equal(Self, Self) -> Bool
+pub fn DeployError::to_repr(Self) -> @debug.Repr
+
 pub(all) suberror DiagnosticsError {
   InvalidLogLimit
   EmptyComponent
@@ -391,6 +402,13 @@ pub fn ControlPlane::receive_heartbeat(Self, heartbeat~ : Heartbeat) -> Node rai
 pub fn ControlPlane::to_repr(Self) -> @debug.Repr
 pub fn ControlPlane::update_command(Self, command_id~ : CommandId, update~ : CommandUpdate, at~ : Timestamp) -> Command raise ControlError
 
+pub(all) enum DeploymentTarget {
+  LinuxNative
+} derive(Eq, @debug.Debug)
+pub fn DeploymentTarget::equal(Self, Self) -> Bool
+pub fn DeploymentTarget::not_equal(Self, Self) -> Bool
+pub fn DeploymentTarget::to_repr(Self) -> @debug.Repr
+
 pub(all) struct DeviceSimulator {
   node_id : NodeId
   mut sensors : Array[SensorAdapter]
@@ -542,6 +560,18 @@ pub fn JournalStatus::equal(Self, Self) -> Bool
 pub fn JournalStatus::not_equal(Self, Self) -> Bool
 pub fn JournalStatus::to_repr(Self) -> @debug.Repr
 
+pub(all) struct LaunchOptions {
+  mut kind : RunProfileKind
+  mut data_dir : String?
+  mut config_path : String?
+} derive(Eq, @debug.Debug)
+pub fn LaunchOptions::equal(Self, Self) -> Bool
+pub fn LaunchOptions::new(kind~ : RunProfileKind) -> Self
+pub fn LaunchOptions::not_equal(Self, Self) -> Bool
+pub fn LaunchOptions::parse(args~ : Array[String]) -> Self raise DeployError
+pub fn LaunchOptions::resolve(Self) -> RunProfile raise DeployError
+pub fn LaunchOptions::to_repr(Self) -> @debug.Repr
+
 pub(all) struct LocalDiagnostics {
   node_id : NodeId
   lifecycle : NodeLifecycle
@@ -631,6 +661,14 @@ pub(all) struct NegotiatedLink {
 pub fn NegotiatedLink::equal(Self, Self) -> Bool
 pub fn NegotiatedLink::not_equal(Self, Self) -> Bool
 pub fn NegotiatedLink::to_repr(Self) -> @debug.Repr
+
+pub(all) enum NetworkMode {
+  Reconnectable
+  OfflineOnly
+} derive(Eq, @debug.Debug)
+pub fn NetworkMode::equal(Self, Self) -> Bool
+pub fn NetworkMode::not_equal(Self, Self) -> Bool
+pub fn NetworkMode::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Node {
   id : NodeId
@@ -755,6 +793,43 @@ pub(all) struct ReplayReport {
 pub fn ReplayReport::equal(Self, Self) -> Bool
 pub fn ReplayReport::not_equal(Self, Self) -> Bool
 pub fn ReplayReport::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResourceLimits {
+  max_pending_events : Int
+  max_log_entries : Int
+  max_reconnect_attempts : Int
+} derive(Eq, @debug.Debug)
+pub fn ResourceLimits::equal(Self, Self) -> Bool
+pub fn ResourceLimits::new(max_pending_events~ : Int, max_log_entries~ : Int, max_reconnect_attempts~ : Int) -> Self raise DeployError
+pub fn ResourceLimits::not_equal(Self, Self) -> Bool
+pub fn ResourceLimits::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RunProfile {
+  name : String
+  kind : RunProfileKind
+  target : DeploymentTarget
+  network : NetworkMode
+  data_dir : String
+  config_path : String
+  journal_dir : String
+  diagnostics_dir : String
+  resources : ResourceLimits
+} derive(Eq, @debug.Debug)
+pub fn RunProfile::control_plane_default() -> Self
+pub fn RunProfile::equal(Self, Self) -> Bool
+pub fn RunProfile::for_kind(kind~ : RunProfileKind) -> Self
+pub fn RunProfile::node_default() -> Self
+pub fn RunProfile::not_equal(Self, Self) -> Bool
+pub fn RunProfile::to_repr(Self) -> @debug.Repr
+pub fn RunProfile::validate(Self) -> Unit raise DeployError
+
+pub(all) enum RunProfileKind {
+  Node
+  ControlPlane
+} derive(Eq, @debug.Debug)
+pub fn RunProfileKind::equal(Self, Self) -> Bool
+pub fn RunProfileKind::not_equal(Self, Self) -> Bool
+pub fn RunProfileKind::to_repr(Self) -> @debug.Repr
 
 pub(all) struct SensorAdapter {
   id : String
