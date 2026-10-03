@@ -21,6 +21,8 @@
 
 本阶段不包含 systemd/Kubernetes 编排、远程配置下发、TLS 凭证管理或真实进程守护；这些能力在运行档案稳定后再接入。
 
+弱网运行、离线自治、重连退避、事件回放和恢复验收步骤见 [`docs/weak-network-operations.md`](docs/weak-network-operations.md)。
+
 ## 目录职责
 
 - `edgeweaver.mbt`、`moon.pkg`：根 package，后续放置跨模块共享的领域类型与接口。
