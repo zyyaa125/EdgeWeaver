@@ -7,8 +7,8 @@
 - **语言与后端：** 使用 MoonBit，首期选择 `native` 后端，面向需要访问本地文件系统和网络的边缘节点进程。
 - **部署类别：** 首期以标准 Linux 用户态设备为目标；具体发行版、CPU 架构和硬件型号待目标设备确认后验证。裸机 MCU、Windows 服务和浏览器/Wasm 部署不在当前范围。
 - **运行角色：** `node` 用于边缘节点，`control-plane` 用于控制面；两者使用独立的数据、配置、事件日志和诊断目录。
-- **仓库远端：** 尚未配置；本地提交不依赖 GitHub 凭证。
-- **许可证：** 尚未决定，因此暂不声明许可证。
+- **仓库远端：** [GitHub](https://github.com/zyyaa125/EdgeWeaver)。
+- **许可证：** MIT，详见 [`LICENSE`](LICENSE)。
 
 ## 部署运行档案
 
@@ -29,6 +29,8 @@
 - `cmd/main/`：命令行程序入口；当前仅用于验证构建链路。
 - `deploy.mbt`：节点端与控制面运行档案、资源边界和启动参数解析。
 - `deploy/`：部署说明与不含凭证的配置样例。
+- `.github/workflows/ci.yml`：GitHub Actions 格式、检查、构建和测试流程。
+- `LICENSE`：MIT 开源许可证文本。
 - `moon.mod`：模块名称、版本、首选目标后端和项目元数据。
 - `AGENTS.md`：本仓库的代码组织、变更范围和验证约定。
 
@@ -42,5 +44,7 @@ moon check --deny-warn
 moon test
 moon run cmd/main
 ```
+
+每次推送和 Pull Request 都会触发 GitHub Actions，使用 MoonBit `latest` 工具链运行同一组格式、检查、构建和测试命令。
 
 后续增加行为时，为相关 package 增加针对性测试；修改公开 API 时运行 `moon info` 并审阅生成的接口摘要。
