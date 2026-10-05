@@ -26,7 +26,7 @@
 ## 目录职责
 
 - `edgeweaver.mbt`、`moon.pkg`：根 package，后续放置跨模块共享的领域类型与接口。
-- `cmd/main/`：命令行程序入口；当前仅用于验证构建链路。
+- `cmd/main/`：命令行程序入口，提供节点登记、心跳、事件入队、能力握手和回放的最小闭环示例。
 - `deploy.mbt`：节点端与控制面运行档案、资源边界和启动参数解析。
 - `deploy/`：部署说明与不含凭证的配置样例。
 - `.github/workflows/ci.yml`：GitHub Actions 格式、检查、构建和测试流程。
@@ -44,6 +44,8 @@ moon check --deny-warn
 moon test
 moon run cmd/main
 ```
+
+其中 `moon run cmd/main` 会输出已登记节点、确认回放的事件数和剩余待处理事件数，用于快速验证节点到控制面的本地同步路径。
 
 每次推送和 Pull Request 都会触发 GitHub Actions，使用 MoonBit `latest` 工具链运行同一组格式、检查、构建和测试命令。
 
