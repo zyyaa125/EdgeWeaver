@@ -32,6 +32,8 @@
 
 省略覆盖参数时使用对应角色的默认值；覆盖数据目录后，事件日志和诊断目录会自动放在该目录下的 `events/` 与 `diagnostics/` 子目录。所有路径和资源预算在 `RunProfile::validate` 中检查。
 
+仓库根目录提供无需真实硬件的最小闭环示例。在项目根目录运行 `moon run cmd/main`，可验证节点登记、心跳、事件入队、能力握手和回放；输出中的 `pending events: 0` 表示本次演示队列已清空。
+
 本阶段不启动 systemd/Kubernetes 服务，也不创建目录或读取 TOML 文件；它只提供可复用的运行档案和启动参数契约。
 
 弱网期间的队列、重连、事件回放和恢复流程见 [`../docs/weak-network-operations.md`](../docs/weak-network-operations.md)。
