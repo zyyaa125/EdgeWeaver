@@ -1,0 +1,11 @@
+import {
+  "zyyaa125/edgeweaver",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/debug",
+}
+
+options(
+  "native-stub": [ "checkpoint.c" ],
+  targets: { "checkpoint.mbt": [ "native" ], "receipt.mbt": [ "native" ] },
+)

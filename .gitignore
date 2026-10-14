@@ -5,3 +5,4 @@ target/
 .moonagent/
 .env
 secrets/
+/recovery-demo.json*

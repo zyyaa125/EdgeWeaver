@@ -3,7 +3,7 @@
 pub(all) struct ProtocolVersion {
   major : Int32
   minor : Int32
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Errors raised while validating a protocol message.
@@ -49,7 +49,7 @@ pub(all) enum MessagePayload {
   Telemetry(String)
   Command(String)
   CommandResult(String)
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// A versioned message shared by telemetry and control-plane flows.
@@ -60,7 +60,7 @@ pub(all) struct MessageEnvelope {
   created_at : Timestamp
   correlation_id : String?
   payload : MessagePayload
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a validated versioned message envelope.

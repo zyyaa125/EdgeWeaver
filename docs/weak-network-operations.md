@@ -7,7 +7,7 @@
 - **运行角色：** 节点负责本地状态、设备适配、命令执行和离线策略；控制面负责登记、心跳、配置/命令管理和同步接入。两端通过版本化消息信封交换数据。
 - **实现目标：** 当前模块以 MoonBit `native` 和标准 Linux 用户态进程为目标；模拟器和适配器先验证闭环，真实硬件驱动、集群高可用和多租户编排不属于本版本。
 - **协议兼容：** 当前接受 `ProtocolVersion::current()`（1.0）。握手版本不一致或没有共同能力时保持断开，不降级发送未知消息；新增协议版本必须先更新信封解析、能力协商和回放测试。
-- **状态边界：** `LocalStore::checkpoint`、执行记录和策略 checkpoint 是持久化边界，文件、服务管理和密钥存储由部署适配器提供。当前核心模块不会自行创建目录或写入凭证。
+- **状态边界：** `LocalStore::checkpoint` 由 `disk/` native 适配器保存为版本化文件并在重启时校验加载；执行记录和策略 checkpoint 仍由部署适配器负责。核心模块不会自行创建目录或写入凭证。
 
 ## 运行不变量
 
@@ -49,6 +49,8 @@
 - `DropOldest` 允许继续写入，但必须监控 `dropped_events`，因为被丢弃的事件不能在恢复时补回。
 
 收到 `QueueFull` 时先记录诊断并评估容量，不要直接删除整个 journal。进程重启前保存 `LocalStore::checkpoint`；启动时用 `LocalStore::restore` 校验并恢复它。
+
+对标准 native 节点，可调用 `@disk.save_checkpoint(path, store)` 和 `@disk.load_checkpoint(path)` 落盘与恢复。适配器先写同目录临时文件、刷新并原子替换正式文件；单文件上限 16 MiB，目录必须预先创建。调用方应在事件写入和回放状态变化后保存 checkpoint，并保证同一文件只有一个写者。
 
 ### 2. 允许有限的离线自治
 
@@ -92,6 +94,8 @@
 | 心跳返回 `StaleHeartbeat` | 检查设备时钟和事件时间戳，修正时间源后再发送 |
 
 ## 恢复验收
+
+仓库提供双进程验收：先运行 `moon run cmd/recovery -- write recovery-demo.json`，等待进程结束，再运行 `moon run cmd/recovery -- replay recovery-demo.json`。首个进程将待处理事件写入 checkpoint，并将接收收据落盘后故意不确认本地事件；第二个进程恢复后得到一次 `Duplicate`，最终持久化的待处理数为零。演示不涉及真实网络。
 
 恢复完成前至少确认：
 

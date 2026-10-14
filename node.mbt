@@ -15,7 +15,7 @@ pub(all) enum NodeLifecycle {
   Online
   Offline
   Retired
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Health states reported by a node or an operator.
@@ -24,7 +24,7 @@ pub(all) enum NodeHealth {
   Healthy
   Degraded
   Unhealthy
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Capabilities that a node can advertise to the control plane.
@@ -32,13 +32,13 @@ pub(all) enum NodeCapability {
   Telemetry
   CommandExecution
   PersistentStorage
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// A stable identifier for one edge node.
 pub(all) struct NodeId {
   value : String
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a non-empty node identifier.
@@ -53,7 +53,7 @@ pub fn NodeId::new(value~ : String) -> NodeId raise NodeError {
 /// A non-negative Unix timestamp measured in seconds.
 pub(all) struct Timestamp {
   unix_seconds : Int32
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a validated timestamp.
@@ -73,7 +73,7 @@ pub(all) struct Node {
   health : NodeHealth
   created_at : Timestamp
   updated_at : Timestamp
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a node in the New lifecycle with unknown health.

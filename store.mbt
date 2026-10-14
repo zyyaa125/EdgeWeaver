@@ -12,14 +12,14 @@ pub(all) suberror StoreError {
 pub(all) enum QueueFullPolicy {
   RejectNew
   DropOldest
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Capacity and overload behavior for a local event journal.
 pub(all) struct JournalConfig {
   capacity : Int32
   full_policy : QueueFullPolicy
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a journal configuration with a positive pending capacity.
@@ -38,7 +38,7 @@ pub fn JournalConfig::new(
 pub(all) enum JournalStatus {
   Pending
   Acknowledged
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// One ordered event retained for local replay or audit.
@@ -47,7 +47,7 @@ pub(all) struct JournalEntry {
   envelope : MessageEnvelope
   mut status : JournalStatus
   mut attempts : Int32
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Reports whether an entry still awaits acknowledgement.
@@ -61,7 +61,7 @@ pub(all) struct LocalStateSnapshot {
   node : Node
   config : ConfigSnapshot?
   saved_at : Timestamp
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// The persistence boundary used to recover a local store after restart.
@@ -71,7 +71,7 @@ pub(all) struct StoreCheckpoint {
   journal : Array[JournalEntry]
   next_sequence : Int32
   dropped_count : Int32
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Mutable local state and event journal for one edge node process.

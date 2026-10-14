@@ -9,7 +9,7 @@ pub(all) suberror ConfigError {
 /// A positive, monotonically comparable configuration version.
 pub(all) struct ConfigVersion {
   value : Int32
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a positive configuration version.
@@ -26,7 +26,7 @@ pub(all) struct ConfigSnapshot {
   version : ConfigVersion
   content : String
   created_at : Timestamp
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Creates a configuration snapshot with non-empty content.

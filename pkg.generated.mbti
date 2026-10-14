@@ -3,6 +3,7 @@ package "zyyaa125/edgeweaver"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -358,19 +359,23 @@ pub(all) struct ConfigSnapshot {
   version : ConfigVersion
   content : String
   created_at : Timestamp
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn ConfigSnapshot::equal(Self, Self) -> Bool
+pub fn ConfigSnapshot::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ConfigSnapshot::new(version~ : ConfigVersion, content~ : String, created_at~ : Timestamp) -> Self raise ConfigError
 pub fn ConfigSnapshot::not_equal(Self, Self) -> Bool
 pub fn ConfigSnapshot::supersedes(Self, previous~ : Self) -> Bool
+pub fn ConfigSnapshot::to_json(Self) -> Json
 pub fn ConfigSnapshot::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ConfigVersion {
   value : Int
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn ConfigVersion::equal(Self, Self) -> Bool
+pub fn ConfigVersion::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ConfigVersion::new(value~ : Int) -> Self raise ConfigError
 pub fn ConfigVersion::not_equal(Self, Self) -> Bool
+pub fn ConfigVersion::to_json(Self) -> Json
 pub fn ConfigVersion::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ConnectionState {
@@ -535,10 +540,12 @@ pub fn Heartbeat::to_repr(Self) -> @debug.Repr
 pub(all) struct JournalConfig {
   capacity : Int
   full_policy : QueueFullPolicy
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn JournalConfig::equal(Self, Self) -> Bool
+pub fn JournalConfig::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn JournalConfig::new(capacity~ : Int, full_policy~ : QueueFullPolicy) -> Self raise StoreError
 pub fn JournalConfig::not_equal(Self, Self) -> Bool
+pub fn JournalConfig::to_json(Self) -> Json
 pub fn JournalConfig::to_repr(Self) -> @debug.Repr
 
 pub(all) struct JournalEntry {
@@ -546,18 +553,22 @@ pub(all) struct JournalEntry {
   envelope : MessageEnvelope
   mut status : JournalStatus
   mut attempts : Int
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn JournalEntry::equal(Self, Self) -> Bool
+pub fn JournalEntry::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn JournalEntry::is_pending(Self) -> Bool
 pub fn JournalEntry::not_equal(Self, Self) -> Bool
+pub fn JournalEntry::to_json(Self) -> Json
 pub fn JournalEntry::to_repr(Self) -> @debug.Repr
 
 pub(all) enum JournalStatus {
   Pending
   Acknowledged
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn JournalStatus::equal(Self, Self) -> Bool
+pub fn JournalStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn JournalStatus::not_equal(Self, Self) -> Bool
+pub fn JournalStatus::to_json(Self) -> Json
 pub fn JournalStatus::to_repr(Self) -> @debug.Repr
 
 pub(all) struct LaunchOptions {
@@ -597,9 +608,11 @@ pub(all) struct LocalStateSnapshot {
   node : Node
   config : ConfigSnapshot?
   saved_at : Timestamp
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn LocalStateSnapshot::equal(Self, Self) -> Bool
+pub fn LocalStateSnapshot::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn LocalStateSnapshot::not_equal(Self, Self) -> Bool
+pub fn LocalStateSnapshot::to_json(Self) -> Json
 pub fn LocalStateSnapshot::to_repr(Self) -> @debug.Repr
 
 pub(all) struct LocalStore {
@@ -639,19 +652,23 @@ pub(all) struct MessageEnvelope {
   created_at : Timestamp
   correlation_id : String?
   payload : MessagePayload
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn MessageEnvelope::equal(Self, Self) -> Bool
+pub fn MessageEnvelope::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn MessageEnvelope::new(version~ : ProtocolVersion, message_id~ : String, node_id~ : NodeId, created_at~ : Timestamp, correlation_id~ : String?, payload~ : MessagePayload) -> Self raise ProtocolError
 pub fn MessageEnvelope::not_equal(Self, Self) -> Bool
+pub fn MessageEnvelope::to_json(Self) -> Json
 pub fn MessageEnvelope::to_repr(Self) -> @debug.Repr
 
 pub(all) enum MessagePayload {
   Telemetry(String)
   Command(String)
   CommandResult(String)
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn MessagePayload::equal(Self, Self) -> Bool
+pub fn MessagePayload::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn MessagePayload::not_equal(Self, Self) -> Bool
+pub fn MessagePayload::to_json(Self) -> Json
 pub fn MessagePayload::to_repr(Self) -> @debug.Repr
 
 pub(all) struct NegotiatedLink {
@@ -677,12 +694,14 @@ pub(all) struct Node {
   health : NodeHealth
   created_at : Timestamp
   updated_at : Timestamp
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn Node::equal(Self, Self) -> Bool
+pub fn Node::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn Node::new(id~ : String, capabilities~ : Array[NodeCapability], created_at~ : Timestamp) -> Self raise NodeError
 pub fn Node::not_equal(Self, Self) -> Bool
 pub fn Node::record_health(Self, health~ : NodeHealth, at~ : Timestamp) -> Self raise NodeError
 pub fn Node::supports(Self, capability~ : NodeCapability) -> Bool
+pub fn Node::to_json(Self) -> Json
 pub fn Node::to_repr(Self) -> @debug.Repr
 pub fn Node::transition(Self, target~ : NodeLifecycle, at~ : Timestamp) -> Self raise NodeError
 
@@ -690,9 +709,11 @@ pub(all) enum NodeCapability {
   Telemetry
   CommandExecution
   PersistentStorage
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn NodeCapability::equal(Self, Self) -> Bool
+pub fn NodeCapability::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn NodeCapability::not_equal(Self, Self) -> Bool
+pub fn NodeCapability::to_json(Self) -> Json
 pub fn NodeCapability::to_repr(Self) -> @debug.Repr
 
 pub(all) enum NodeHealth {
@@ -700,17 +721,21 @@ pub(all) enum NodeHealth {
   Healthy
   Degraded
   Unhealthy
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn NodeHealth::equal(Self, Self) -> Bool
+pub fn NodeHealth::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn NodeHealth::not_equal(Self, Self) -> Bool
+pub fn NodeHealth::to_json(Self) -> Json
 pub fn NodeHealth::to_repr(Self) -> @debug.Repr
 
 pub(all) struct NodeId {
   value : String
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn NodeId::equal(Self, Self) -> Bool
+pub fn NodeId::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn NodeId::new(value~ : String) -> Self raise NodeError
 pub fn NodeId::not_equal(Self, Self) -> Bool
+pub fn NodeId::to_json(Self) -> Json
 pub fn NodeId::to_repr(Self) -> @debug.Repr
 
 pub(all) enum NodeLifecycle {
@@ -719,9 +744,11 @@ pub(all) enum NodeLifecycle {
   Online
   Offline
   Retired
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn NodeLifecycle::equal(Self, Self) -> Bool
+pub fn NodeLifecycle::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn NodeLifecycle::not_equal(Self, Self) -> Bool
+pub fn NodeLifecycle::to_json(Self) -> Json
 pub fn NodeLifecycle::to_repr(Self) -> @debug.Repr
 
 pub(all) enum PolicyCondition {
@@ -743,20 +770,24 @@ pub fn PolicyDecision::to_repr(Self) -> @debug.Repr
 pub(all) struct ProtocolVersion {
   major : Int
   minor : Int
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn ProtocolVersion::current() -> Self
 pub fn ProtocolVersion::ensure_supported(Self) -> Unit raise ProtocolError
 pub fn ProtocolVersion::equal(Self, Self) -> Bool
+pub fn ProtocolVersion::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ProtocolVersion::new(major~ : Int, minor~ : Int) -> Self raise ProtocolError
 pub fn ProtocolVersion::not_equal(Self, Self) -> Bool
+pub fn ProtocolVersion::to_json(Self) -> Json
 pub fn ProtocolVersion::to_repr(Self) -> @debug.Repr
 
 pub(all) enum QueueFullPolicy {
   RejectNew
   DropOldest
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn QueueFullPolicy::equal(Self, Self) -> Bool
+pub fn QueueFullPolicy::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn QueueFullPolicy::not_equal(Self, Self) -> Bool
+pub fn QueueFullPolicy::to_json(Self) -> Json
 pub fn QueueFullPolicy::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ReplayItem {
@@ -859,9 +890,11 @@ pub(all) struct StoreCheckpoint {
   journal : Array[JournalEntry]
   next_sequence : Int
   dropped_count : Int
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn StoreCheckpoint::equal(Self, Self) -> Bool
+pub fn StoreCheckpoint::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn StoreCheckpoint::not_equal(Self, Self) -> Bool
+pub fn StoreCheckpoint::to_json(Self) -> Json
 pub fn StoreCheckpoint::to_repr(Self) -> @debug.Repr
 
 pub(all) struct SyncConfig {
@@ -895,10 +928,12 @@ pub fn SyncSendResult::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Timestamp {
   unix_seconds : Int
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn Timestamp::equal(Self, Self) -> Bool
+pub fn Timestamp::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn Timestamp::new(unix_seconds~ : Int) -> Self raise NodeError
 pub fn Timestamp::not_equal(Self, Self) -> Bool
+pub fn Timestamp::to_json(Self) -> Json
 pub fn Timestamp::to_repr(Self) -> @debug.Repr
 
 pub(all) enum TransportCapability {
