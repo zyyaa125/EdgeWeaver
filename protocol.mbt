@@ -1,8 +1,8 @@
 ///|
 /// A protocol version carried by every EdgeWeaver message.
 pub(all) struct ProtocolVersion {
-  major : Int
-  minor : Int
+  major : Int32
+  minor : Int32
 } derive(Debug, Eq)
 
 ///|
@@ -18,8 +18,8 @@ pub(all) suberror ProtocolError {
 ///|
 /// Creates a non-negative protocol version.
 pub fn ProtocolVersion::new(
-  major~ : Int,
-  minor~ : Int,
+  major~ : Int32,
+  minor~ : Int32,
 ) -> ProtocolVersion raise ProtocolError {
   if major < 0 || minor < 0 {
     raise ProtocolError::InvalidVersion

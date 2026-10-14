@@ -31,17 +31,17 @@ pub(all) enum NetworkMode {
 ///|
 /// Bounded local resource settings for a process role.
 pub(all) struct ResourceLimits {
-  max_pending_events : Int
-  max_log_entries : Int
-  max_reconnect_attempts : Int
+  max_pending_events : Int32
+  max_log_entries : Int32
+  max_reconnect_attempts : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Creates positive resource limits.
 pub fn ResourceLimits::new(
-  max_pending_events~ : Int,
-  max_log_entries~ : Int,
-  max_reconnect_attempts~ : Int,
+  max_pending_events~ : Int32,
+  max_log_entries~ : Int32,
+  max_reconnect_attempts~ : Int32,
 ) -> ResourceLimits raise DeployError {
   if max_pending_events <= 0 ||
     max_log_entries <= 0 ||
@@ -204,7 +204,7 @@ pub fn LaunchOptions::resolve(
 ///|
 fn next_argument(
   args : Array[String],
-  index : Int,
+  index : Int32,
   option : String,
 ) -> String raise DeployError {
   if index + 1 >= args.length() {

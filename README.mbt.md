@@ -42,7 +42,7 @@ EdgeWeaver 是面向弱网边缘设备的 MoonBit 自治核心库与平台原型
 
 ## 开发
 
-需要已安装 MoonBit 工具链。常用命令：
+需要已安装 MoonBit 工具链。本次使用 `moon 0.1.20261012`、`moonc v0.10.15` 验证；CI 的 `Show toolchain` 步骤会记录实际版本。常用命令：
 
 ```sh
 moon fmt --check

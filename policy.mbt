@@ -14,7 +14,7 @@ pub(all) suberror PolicyError {
 ///|
 /// Conditions that can trigger a local offline rule.
 pub(all) enum PolicyCondition {
-  OfflineFor(Int)
+  OfflineFor(Int32)
   HealthIs(NodeHealth)
 } derive(Debug, Eq)
 
@@ -26,8 +26,8 @@ pub(all) struct AutonomyRule {
   action : CommandAction
   valid_from : Timestamp
   valid_until : Timestamp
-  max_triggers : Int
-  mut fired_count : Int
+  max_triggers : Int32
+  mut fired_count : Int32
 } derive(Debug, Eq)
 
 ///|
@@ -38,7 +38,7 @@ pub fn AutonomyRule::new(
   action~ : CommandAction,
   valid_from~ : Timestamp,
   valid_until~ : Timestamp,
-  max_triggers~ : Int,
+  max_triggers~ : Int32,
 ) -> AutonomyRule raise PolicyError {
   if id == "" {
     raise PolicyError::EmptyRuleId
@@ -74,7 +74,7 @@ pub fn AutonomyRule::new(
 pub(all) struct AutonomyContext {
   lifecycle : NodeLifecycle
   health : NodeHealth
-  offline_for : Int
+  offline_for : Int32
 } derive(Debug, Eq)
 
 ///|
@@ -82,7 +82,7 @@ pub(all) struct AutonomyContext {
 pub fn AutonomyContext::new(
   lifecycle~ : NodeLifecycle,
   health~ : NodeHealth,
-  offline_for~ : Int,
+  offline_for~ : Int32,
 ) -> AutonomyContext raise PolicyError {
   if offline_for < 0 {
     raise PolicyError::InvalidOfflineDuration

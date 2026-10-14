@@ -9,15 +9,15 @@ pub(all) suberror SyncError {
 ///|
 /// Limits applied to one offline replay pass.
 pub(all) struct SyncConfig {
-  batch_size : Int
-  max_attempts : Int
+  batch_size : Int32
+  max_attempts : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Creates a replay configuration with positive limits.
 pub fn SyncConfig::new(
-  batch_size~ : Int,
-  max_attempts~ : Int,
+  batch_size~ : Int32,
+  max_attempts~ : Int32,
 ) -> SyncConfig raise SyncError {
   if batch_size <= 0 {
     raise SyncError::InvalidBatchSize
@@ -31,13 +31,13 @@ pub fn SyncConfig::new(
 ///|
 /// The last event sequence acknowledged during ordered replay.
 pub(all) struct SyncCursor {
-  last_acked_sequence : Int
+  last_acked_sequence : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Creates a cursor at a validated journal sequence.
 pub fn SyncCursor::new(
-  last_acked_sequence~ : Int,
+  last_acked_sequence~ : Int32,
 ) -> SyncCursor raise SyncError {
   if last_acked_sequence < 0 {
     raise SyncError::InvalidCursor
@@ -53,7 +53,7 @@ pub fn SyncCursor::start() -> SyncCursor {
 
 ///|
 /// Advances the cursor without moving it backwards.
-pub fn SyncCursor::advance(self : SyncCursor, sequence~ : Int) -> SyncCursor {
+pub fn SyncCursor::advance(self : SyncCursor, sequence~ : Int32) -> SyncCursor {
   if sequence > self.last_acked_sequence {
     { last_acked_sequence: sequence, }
   } else {
@@ -83,22 +83,22 @@ pub(all) enum ReplayOutcome {
 ///|
 /// Per-entry result from one replay pass.
 pub(all) struct ReplayItem {
-  sequence : Int
+  sequence : Int32
   message_id : String
   outcome : ReplayOutcome
-  attempts : Int
+  attempts : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Summary of one bounded, ordered replay pass.
 pub(all) struct ReplayReport {
   cursor : SyncCursor
-  inspected : Int
-  acknowledged : Int
-  deduplicated : Int
-  retryable_failures : Int
-  permanent_failures : Int
-  exhausted : Int
+  inspected : Int32
+  acknowledged : Int32
+  deduplicated : Int32
+  retryable_failures : Int32
+  permanent_failures : Int32
+  exhausted : Int32
   items : Array[ReplayItem]
 } derive(Debug, Eq)
 

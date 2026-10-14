@@ -17,7 +17,7 @@ pub(all) suberror AdapterError {
 /// A deterministic reading produced by a sensor adapter.
 pub(all) struct SensorReading {
   sensor_id : String
-  value : Int
+  value : Int32
   unit : String
   captured_at : Timestamp
 } derive(Debug, Eq)
@@ -27,8 +27,8 @@ pub(all) struct SensorReading {
 pub(all) struct SensorAdapter {
   id : String
   unit : String
-  mut value : Int
-  step : Int
+  mut value : Int32
+  step : Int32
 } derive(Debug, Eq)
 
 ///|
@@ -36,8 +36,8 @@ pub(all) struct SensorAdapter {
 pub fn SensorAdapter::new(
   id~ : String,
   unit~ : String,
-  initial_value~ : Int,
-  step~ : Int,
+  initial_value~ : Int32,
+  step~ : Int32,
 ) -> SensorAdapter raise AdapterError {
   if id == "" {
     raise AdapterError::EmptyAdapterId

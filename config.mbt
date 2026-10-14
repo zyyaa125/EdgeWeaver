@@ -8,12 +8,12 @@ pub(all) suberror ConfigError {
 ///|
 /// A positive, monotonically comparable configuration version.
 pub(all) struct ConfigVersion {
-  value : Int
+  value : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Creates a positive configuration version.
-pub fn ConfigVersion::new(value~ : Int) -> ConfigVersion raise ConfigError {
+pub fn ConfigVersion::new(value~ : Int32) -> ConfigVersion raise ConfigError {
   if value <= 0 {
     raise ConfigError::InvalidVersion
   }

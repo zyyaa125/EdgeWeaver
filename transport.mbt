@@ -36,17 +36,17 @@ pub(all) enum TransportCapability {
 ///|
 /// Exponential reconnect limits measured in seconds.
 pub(all) struct BackoffPolicy {
-  base_delay : Int
-  max_delay : Int
-  max_attempts : Int
+  base_delay : Int32
+  max_delay : Int32
+  max_attempts : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Creates a bounded exponential backoff policy.
 pub fn BackoffPolicy::new(
-  base_delay~ : Int,
-  max_delay~ : Int,
-  max_attempts~ : Int,
+  base_delay~ : Int32,
+  max_delay~ : Int32,
+  max_attempts~ : Int32,
 ) -> BackoffPolicy raise TransportError {
   if base_delay <= 0 {
     raise TransportError::InvalidBaseDelay
@@ -64,8 +64,8 @@ pub fn BackoffPolicy::new(
 /// Returns the delay for a one-based failed connection attempt.
 pub fn BackoffPolicy::delay_for(
   self : BackoffPolicy,
-  attempt~ : Int,
-) -> Int raise TransportError {
+  attempt~ : Int32,
+) -> Int32 raise TransportError {
   if attempt <= 0 {
     raise TransportError::InvalidAttemptLimit
   }
@@ -108,7 +108,7 @@ pub(all) struct TransportManager {
   capabilities : Array[TransportCapability]
   backoff : BackoffPolicy
   mut state : ConnectionState
-  mut attempts : Int
+  mut attempts : Int32
   mut next_retry_at : Timestamp?
   mut negotiated : NegotiatedLink?
   mut cursor : SyncCursor

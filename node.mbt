@@ -52,12 +52,12 @@ pub fn NodeId::new(value~ : String) -> NodeId raise NodeError {
 ///|
 /// A non-negative Unix timestamp measured in seconds.
 pub(all) struct Timestamp {
-  unix_seconds : Int
+  unix_seconds : Int32
 } derive(Debug, Eq)
 
 ///|
 /// Creates a validated timestamp.
-pub fn Timestamp::new(unix_seconds~ : Int) -> Timestamp raise NodeError {
+pub fn Timestamp::new(unix_seconds~ : Int32) -> Timestamp raise NodeError {
   if unix_seconds < 0 {
     raise NodeError::InvalidTimestamp
   }

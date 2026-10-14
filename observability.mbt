@@ -28,9 +28,9 @@ pub(all) struct DiagnosticEvent {
 ///|
 /// A bounded collector for local events and sync/policy status.
 pub(all) struct DiagnosticsCollector {
-  max_logs : Int
+  max_logs : Int32
   mut logs : Array[DiagnosticEvent]
-  mut sync_failures : Int
+  mut sync_failures : Int32
   mut last_sync_error : String?
   mut last_policy_decision : PolicyDecision
 } derive(Debug, Eq)
@@ -38,7 +38,7 @@ pub(all) struct DiagnosticsCollector {
 ///|
 /// Creates an empty diagnostics collector with a bounded log buffer.
 pub fn DiagnosticsCollector::new(
-  max_logs~ : Int,
+  max_logs~ : Int32,
 ) -> DiagnosticsCollector raise DiagnosticsError {
   if max_logs <= 0 {
     raise DiagnosticsError::InvalidLogLimit
@@ -160,16 +160,16 @@ pub(all) struct LocalDiagnostics {
   lifecycle : NodeLifecycle
   health : NodeHealth
   captured_at : Timestamp
-  pending_events : Int
-  dropped_events : Int
-  sync_failures : Int
+  pending_events : Int32
+  dropped_events : Int32
+  sync_failures : Int32
   last_sync_error : String?
   sync_cursor : SyncCursor
   connection_state : ConnectionState
   negotiated_capabilities : Array[TransportCapability]
   next_retry_at : Timestamp?
   policy_decision : PolicyDecision
-  execution_records : Int
+  execution_records : Int32
   events : Array[DiagnosticEvent]
 } derive(Debug, Eq)
 

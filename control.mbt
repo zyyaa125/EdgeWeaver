@@ -375,7 +375,7 @@ fn ensure_node_id(node_id : NodeId) -> Unit raise ControlError {
 }
 
 ///|
-fn ControlPlane::find_index(self : ControlPlane, node_id~ : NodeId) -> Int? {
+fn ControlPlane::find_index(self : ControlPlane, node_id~ : NodeId) -> Int32? {
   for index in 0..<self.nodes.length() {
     if self.nodes[index].id == node_id {
       return Some(index)
@@ -388,7 +388,7 @@ fn ControlPlane::find_index(self : ControlPlane, node_id~ : NodeId) -> Int? {
 fn ControlPlane::find_config_index(
   self : ControlPlane,
   node_id~ : NodeId,
-) -> Int? {
+) -> Int32? {
   for index in 0..<self.configs.length() {
     if self.configs[index].node_id == node_id {
       return Some(index)
@@ -401,7 +401,7 @@ fn ControlPlane::find_config_index(
 fn ControlPlane::find_command_index(
   self : ControlPlane,
   command_id~ : CommandId,
-) -> Int? {
+) -> Int32? {
   for index in 0..<self.commands.length() {
     if self.commands[index].id == command_id {
       return Some(index)

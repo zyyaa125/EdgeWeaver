@@ -3,7 +3,7 @@
 pub(all) suberror StoreError {
   InvalidCapacity
   QueueFull
-  EventNotFound(Int)
+  EventNotFound(Int32)
   InvalidCheckpoint
 } derive(Debug, Eq)
 
@@ -17,14 +17,14 @@ pub(all) enum QueueFullPolicy {
 ///|
 /// Capacity and overload behavior for a local event journal.
 pub(all) struct JournalConfig {
-  capacity : Int
+  capacity : Int32
   full_policy : QueueFullPolicy
 } derive(Debug, Eq)
 
 ///|
 /// Creates a journal configuration with a positive pending capacity.
 pub fn JournalConfig::new(
-  capacity~ : Int,
+  capacity~ : Int32,
   full_policy~ : QueueFullPolicy,
 ) -> JournalConfig raise StoreError {
   if capacity <= 0 {
@@ -43,10 +43,10 @@ pub(all) enum JournalStatus {
 ///|
 /// One ordered event retained for local replay or audit.
 pub(all) struct JournalEntry {
-  sequence : Int
+  sequence : Int32
   envelope : MessageEnvelope
   mut status : JournalStatus
-  mut attempts : Int
+  mut attempts : Int32
 } derive(Debug, Eq)
 
 ///|
@@ -69,8 +69,8 @@ pub(all) struct StoreCheckpoint {
   config : JournalConfig
   state : LocalStateSnapshot?
   journal : Array[JournalEntry]
-  next_sequence : Int
-  dropped_count : Int
+  next_sequence : Int32
+  dropped_count : Int32
 } derive(Debug, Eq)
 
 ///|
@@ -79,8 +79,8 @@ pub(all) struct LocalStore {
   config : JournalConfig
   mut state : LocalStateSnapshot?
   mut journal : Array[JournalEntry]
-  mut next_sequence : Int
-  mut dropped_count : Int
+  mut next_sequence : Int32
+  mut dropped_count : Int32
 }
 
 ///|
@@ -147,7 +147,7 @@ pub fn LocalStore::state(self : LocalStore) -> LocalStateSnapshot? {
 pub fn LocalStore::append_event(
   self : LocalStore,
   envelope~ : MessageEnvelope,
-) -> Int raise StoreError {
+) -> Int32 raise StoreError {
   if self.pending_count() >= self.config.capacity {
     match self.config.full_policy {
       QueueFullPolicy::RejectNew => raise StoreError::QueueFull
@@ -179,13 +179,13 @@ pub fn LocalStore::journal_entries(self : LocalStore) -> Array[JournalEntry] {
 
 ///|
 /// Returns the number of events awaiting acknowledgement.
-pub fn LocalStore::pending_count(self : LocalStore) -> Int {
+pub fn LocalStore::pending_count(self : LocalStore) -> Int32 {
   pending_entry_count(self.journal)
 }
 
 ///|
 /// Returns how many pending events have been dropped by overload policy.
-pub fn LocalStore::dropped_count(self : LocalStore) -> Int {
+pub fn LocalStore::dropped_count(self : LocalStore) -> Int32 {
   self.dropped_count
 }
 
@@ -193,7 +193,7 @@ pub fn LocalStore::dropped_count(self : LocalStore) -> Int {
 /// Records one replay attempt for a pending event.
 pub fn LocalStore::record_attempt(
   self : LocalStore,
-  sequence~ : Int,
+  sequence~ : Int32,
 ) -> Unit raise StoreError {
   for index in 0..<self.journal.length() {
     if self.journal[index].sequence == sequence {
@@ -210,7 +210,7 @@ pub fn LocalStore::record_attempt(
 /// Marks an event acknowledged; repeating the acknowledgement is harmless.
 pub fn LocalStore::acknowledge(
   self : LocalStore,
-  sequence~ : Int,
+  sequence~ : Int32,
 ) -> Unit raise StoreError {
   for index in 0..<self.journal.length() {
     if self.journal[index].sequence == sequence {
@@ -235,7 +235,7 @@ pub fn LocalStore::checkpoint(self : LocalStore) -> StoreCheckpoint {
 
 ///|
 fn LocalStore::drop_oldest_pending(self : LocalStore) -> Unit raise StoreError {
-  let mut drop_index : Int? = None
+  let mut drop_index : Int32? = None
   for index in 0..<self.journal.length() {
     if self.journal[index].status == JournalStatus::Pending {
       match drop_index {
@@ -260,7 +260,7 @@ fn LocalStore::drop_oldest_pending(self : LocalStore) -> Unit raise StoreError {
 }
 
 ///|
-fn pending_entry_count(entries : Array[JournalEntry]) -> Int {
+fn pending_entry_count(entries : Array[JournalEntry]) -> Int32 {
   let mut count = 0
   for entry in entries {
     if entry.status == JournalStatus::Pending {

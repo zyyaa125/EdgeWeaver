@@ -1,6 +1,6 @@
 ///|
 fn edge_time(
-  seconds : Int,
+  seconds : Int32,
 ) -> @edgeweaver.Timestamp raise @edgeweaver.NodeError {
   @edgeweaver.Timestamp::new(unix_seconds=seconds)
 }

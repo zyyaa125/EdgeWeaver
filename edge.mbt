@@ -257,7 +257,7 @@ fn required_capability(action : CommandAction) -> NodeCapability {
 fn EdgeExecutor::find_record_index(
   self : EdgeExecutor,
   command_id~ : CommandId,
-) -> Int? {
+) -> Int32? {
   for index in 0..<self.records.length() {
     if self.records[index].command.id == command_id {
       return Some(index)
