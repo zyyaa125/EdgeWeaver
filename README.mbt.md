@@ -62,7 +62,7 @@ moon run cmd/recovery -- write recovery-demo.json
 moon run cmd/recovery -- replay recovery-demo.json
 ```
 
-首个进程输出 `receiver accepted; local pending=1`，模拟接收成功但本地确认丢失后退出；第二个进程从磁盘恢复，输出 `acknowledged=0; deduplicated=1; sent=1; pending=0`。接收收据在 `recovery-demo.json.receipt`，用于确认回放没有重复接收；重复验收前删除这两个演示文件。此适配器面向单写者，要求目标目录已存在，文件上限 16 MiB；接收收据只是本地持久化替身，尚未提供网络传输。
+首个进程输出 `receiver accepted; local pending=1`，模拟接收成功但本地确认丢失后退出；第二个进程从磁盘恢复，输出 `acknowledged=0; deduplicated=1; sent=1; pending=0`。接收收据在 `recovery-demo.json.receipt`，用于确认回放没有重复接收。同一路径可重复运行这两个命令：新消息 ID 使用 checkpoint 中递增的序号；若上一轮只有 `write` 而尚未 `replay`，程序会拒绝覆盖待处理事件。此适配器面向单写者，要求目标目录已存在，文件上限 16 MiB；收据只是本地接收端替身，尚未提供网络传输。
 
 每次推送和 Pull Request 都会触发 GitHub Actions，使用 MoonBit `latest` 工具链运行同一组格式、检查、构建和测试命令。
 

@@ -95,7 +95,7 @@
 
 ## 恢复验收
 
-仓库提供双进程验收：先运行 `moon run cmd/recovery -- write recovery-demo.json`，等待进程结束，再运行 `moon run cmd/recovery -- replay recovery-demo.json`。首个进程将待处理事件写入 checkpoint，并将接收收据落盘后故意不确认本地事件；第二个进程恢复后得到一次 `Duplicate`，最终持久化的待处理数为零。演示不涉及真实网络。
+仓库提供双进程验收：先运行 `moon run cmd/recovery -- write recovery-demo.json`，等待进程结束，再运行 `moon run cmd/recovery -- replay recovery-demo.json`。首个进程将待处理事件写入 checkpoint，并将接收收据落盘后故意不确认本地事件；第二个进程恢复后得到一次 `Duplicate`，最终持久化的待处理数为零。整组命令可在同一路径重复运行；若上轮只写入而未回放，应先完成 `replay`。演示不涉及真实网络。
 
 恢复完成前至少确认：
 

@@ -1,6 +1,7 @@
 ///|
 suberror RecoveryError {
   InvalidArguments
+  PendingRecovery
   UnexpectedReplay
 }
 
@@ -23,6 +24,37 @@ fn main raise {
 
 ///|
 fn write_pending_events(path : String) -> Unit raise {
+  let store = match @disk.load_checkpoint_if_exists(path) {
+    Some(store) => store
+    None => new_demo_store()
+  }
+  if store.pending_count() != 0 {
+    println("pending event exists; run replay before writing again")
+    raise RecoveryError::PendingRecovery
+  }
+  let node_id = @edgeweaver.NodeId::new(value="recovery-node")
+  let sequence = store.checkpoint().next_sequence
+  let envelope = @edgeweaver.MessageEnvelope::new(
+    version=@edgeweaver.ProtocolVersion::current(),
+    message_id="recovery-event-" + sequence.to_string(),
+    node_id~,
+    created_at=@edgeweaver.Timestamp::new(unix_seconds=100),
+    correlation_id=None,
+    payload=@edgeweaver.MessagePayload::Telemetry("temperature=24"),
+  )
+  let _ = store.append_event(envelope~)
+  @disk.save_checkpoint(path, store)
+  if @disk.receive_once(path + ".receipt", envelope) !=
+    @edgeweaver.SyncSendResult::Accepted {
+    raise RecoveryError::UnexpectedReplay
+  }
+  println(
+    "checkpoint written; receiver accepted; local pending=\{store.pending_count()}",
+  )
+}
+
+///|
+fn new_demo_store() -> @edgeweaver.LocalStore raise {
   let config = @edgeweaver.JournalConfig::new(
     capacity=4,
     full_policy=@edgeweaver.QueueFullPolicy::RejectNew,
@@ -58,23 +90,7 @@ fn write_pending_events(path : String) -> Unit raise {
     ),
     saved_at: @edgeweaver.Timestamp::new(unix_seconds=105),
   })
-  let envelope = @edgeweaver.MessageEnvelope::new(
-    version=@edgeweaver.ProtocolVersion::current(),
-    message_id="recovery-event-001",
-    node_id~,
-    created_at=@edgeweaver.Timestamp::new(unix_seconds=100),
-    correlation_id=None,
-    payload=@edgeweaver.MessagePayload::Telemetry("temperature=24"),
-  )
-  let _ = store.append_event(envelope~)
-  @disk.save_checkpoint(path, store)
-  if @disk.receive_once(path + ".receipt", envelope) !=
-    @edgeweaver.SyncSendResult::Accepted {
-    raise RecoveryError::UnexpectedReplay
-  }
-  println(
-    "checkpoint written; receiver accepted; local pending=\{store.pending_count()}",
-  )
+  store
 }
 
 ///|

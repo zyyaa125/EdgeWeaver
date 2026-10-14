@@ -81,3 +81,19 @@ pub fn load_checkpoint(
     _ => raise DiskCheckpointError::InvalidData
   }
 }
+
+///|
+/// Returns None only when the checkpoint file is absent. Existing but invalid
+/// checkpoints are rejected instead of being silently replaced.
+pub fn load_checkpoint_if_exists(
+  path : String,
+) -> @edgeweaver.LocalStore? raise DiskCheckpointError {
+  if path == "" {
+    raise DiskCheckpointError::EmptyPath
+  }
+  match file_status(@utf8.encode(path)) {
+    0 => None
+    1 => Some(load_checkpoint(path))
+    _ => raise DiskCheckpointError::ReadFailed
+  }
+}
