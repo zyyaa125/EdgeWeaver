@@ -145,3 +145,82 @@ test "store acknowledges idempotently and validates configuration" {
     _ => fail("expected unknown event rejection")
   }
 }
+
+///|
+test "restore rejects reordered and invalid checkpoint entries" {
+  let store = @edgeweaver.LocalStore::new(
+    config=try! @edgeweaver.JournalConfig::new(
+      capacity=2,
+      full_policy=@edgeweaver.QueueFullPolicy::RejectNew,
+    ),
+  )
+  let _ = try! store.append_event(envelope=try! store_event("first"))
+  let _ = try! store.append_event(envelope=try! store_event("second"))
+  let valid = store.checkpoint()
+  let reversed = @edgeweaver.StoreCheckpoint::{
+    config: valid.config,
+    state: valid.state,
+    journal: [valid.journal[1], valid.journal[0]],
+    next_sequence: valid.next_sequence,
+    dropped_count: valid.dropped_count,
+  }
+  try @edgeweaver.LocalStore::restore(checkpoint=reversed) catch {
+    @edgeweaver.StoreError::InvalidCheckpoint => ()
+    _ => fail("wrong restore error")
+  } noraise {
+    _ => fail("reordered journal accepted")
+  }
+  let bad_entry = @edgeweaver.JournalEntry::{
+    sequence: valid.journal[0].sequence,
+    envelope: {
+      version: valid.journal[0].envelope.version,
+      message_id: "",
+      node_id: valid.journal[0].envelope.node_id,
+      created_at: valid.journal[0].envelope.created_at,
+      correlation_id: None,
+      payload: valid.journal[0].envelope.payload,
+    },
+    status: @edgeweaver.JournalStatus::Pending,
+    attempts: 0,
+  }
+  let invalid = @edgeweaver.StoreCheckpoint::{
+    config: valid.config,
+    state: valid.state,
+    journal: [bad_entry],
+    next_sequence: valid.next_sequence,
+    dropped_count: valid.dropped_count,
+  }
+  try @edgeweaver.LocalStore::restore(checkpoint=invalid) catch {
+    @edgeweaver.StoreError::InvalidCheckpoint => ()
+    _ => fail("wrong restore error")
+  } noraise {
+    _ => fail("invalid envelope accepted")
+  }
+}
+
+///|
+test "append refuses exhausted sequence without changing pending state" {
+  let store = @edgeweaver.LocalStore::new(
+    config=try! @edgeweaver.JournalConfig::new(
+      capacity=1,
+      full_policy=@edgeweaver.QueueFullPolicy::RejectNew,
+    ),
+  )
+  let baseline = store.checkpoint()
+  let exhausted = @edgeweaver.StoreCheckpoint::{
+    config: baseline.config,
+    state: None,
+    journal: [],
+    next_sequence: 2147483647,
+    dropped_count: 0,
+  }
+  let restored = try! @edgeweaver.LocalStore::restore(checkpoint=exhausted)
+  try restored.append_event(envelope=try! store_event("overflow")) catch {
+    @edgeweaver.StoreError::SequenceExhausted => ()
+    _ => fail("wrong sequence error")
+  } noraise {
+    _ => fail("sequence overflow accepted")
+  }
+  assert_eq(restored.pending_count(), 0)
+  assert_eq(restored.checkpoint().next_sequence, 2147483647)
+}

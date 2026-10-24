@@ -65,6 +65,13 @@ pub fn load_checkpoint(
   if bytes.length() == 0 {
     raise DiskCheckpointError::ReadFailed
   }
+  decode_checkpoint_bytes(bytes)
+}
+
+///|
+fn decode_checkpoint_bytes(
+  bytes : Bytes,
+) -> @edgeweaver.LocalStore raise DiskCheckpointError {
   let text = @utf8.decode(bytes) catch {
     _ => raise DiskCheckpointError::InvalidData
   }

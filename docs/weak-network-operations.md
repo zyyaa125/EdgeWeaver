@@ -50,7 +50,9 @@
 
 收到 `QueueFull` 时先记录诊断并评估容量，不要直接删除整个 journal。进程重启前保存 `LocalStore::checkpoint`；启动时用 `LocalStore::restore` 校验并恢复它。
 
-对标准 native 节点，可调用 `@disk.save_checkpoint(path, store)` 和 `@disk.load_checkpoint(path)` 落盘与恢复。适配器先写同目录临时文件、刷新并原子替换正式文件；单文件上限 16 MiB，目录必须预先创建。调用方应在事件写入和回放状态变化后保存 checkpoint，并保证同一文件只有一个写者。
+对标准 native 节点，可调用 `@disk.save_checkpoint(path, store)` 和 `@disk.load_checkpoint(path)` 落盘与恢复。适配器先写同目录临时文件、刷新并原子替换正式文件；单文件上限 16 MiB，目录必须预先创建。调用方应在事件写入和回放状态变化后保存 checkpoint，并保证同一文件只有一个写者。恢复时拒绝损坏、缺字段、版本不兼容、日志乱序及无效消息；保留原文件供诊断。POSIX 目录尚未 `fsync`，掉电耐久性不作保证。
+
+同步游标仅用于报告已确认进度，不能证明磁盘里某条待处理事件已被远端确认。即使游标超前，恢复后也必须重放待处理事件；接收端用稳定消息 ID 返回 `Duplicate`。checkpoint 与收据没有跨文件事务，不一致时保留待处理条目并停止人工无法解释的自动推进。
 
 ### 2. 允许有限的离线自治
 

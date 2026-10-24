@@ -127,9 +127,8 @@ pub fn replay_pending(
     if halted || inspected >= config.batch_size {
       break
     }
-    if entry.sequence <= next_cursor.last_acked_sequence {
-      continue
-    }
+    // A cursor alone cannot prove that a pending entry was acknowledged.
+    // Replaying it is safe only when the receiver deduplicates message IDs.
     inspected = inspected + 1
     if has_acknowledged_message(store, message_id=entry.envelope.message_id) {
       store.acknowledge(sequence=entry.sequence)

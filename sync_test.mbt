@@ -142,3 +142,28 @@ test "replay stops on exhausted attempts and validates limits" {
   assert_eq(second_report.items[0].sequence, sequence)
   assert_eq(store.pending_count(), 1)
 }
+
+///|
+test "advanced cursor cannot hide a pending event after restart" {
+  let store = sync_store()
+  let sequence = try! store.append_event(
+    envelope=try! sync_event("pending-after-ack-loss"),
+  )
+  let restored = try! @edgeweaver.LocalStore::restore(
+    checkpoint=store.checkpoint(),
+  )
+  let config = try! @edgeweaver.SyncConfig::new(batch_size=1, max_attempts=2)
+  let mut calls = 0
+  let report = try! @edgeweaver.replay_pending(
+    restored,
+    config~,
+    cursor=try! @edgeweaver.SyncCursor::new(last_acked_sequence=sequence),
+    sender=_message => {
+      calls = calls + 1
+      @edgeweaver.SyncSendResult::Duplicate
+    },
+  )
+  assert_eq(calls, 1)
+  assert_eq(report.deduplicated, 1)
+  assert_eq(restored.pending_count(), 0)
+}

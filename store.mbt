@@ -5,6 +5,7 @@ pub(all) suberror StoreError {
   QueueFull
   EventNotFound(Int32)
   InvalidCheckpoint
+  SequenceExhausted
 } derive(Debug, Eq)
 
 ///|
@@ -98,24 +99,58 @@ pub fn LocalStore::restore(
     capacity=checkpoint.config.capacity,
     full_policy=checkpoint.config.full_policy,
   )
-  if checkpoint.next_sequence <= 0 || checkpoint.dropped_count < 0 {
+  if checkpoint.next_sequence <= 0 ||
+    checkpoint.dropped_count < 0 ||
+    checkpoint.journal.length() > 100000 {
     raise StoreError::InvalidCheckpoint
+  }
+  match checkpoint.state {
+    Some(snapshot) => {
+      if snapshot.node.id.value == "" ||
+        snapshot.node.created_at.unix_seconds < 0 ||
+        snapshot.node.updated_at.unix_seconds <
+        snapshot.node.created_at.unix_seconds ||
+        snapshot.saved_at.unix_seconds < snapshot.node.updated_at.unix_seconds {
+        raise StoreError::InvalidCheckpoint
+      }
+      match snapshot.config {
+        Some(saved_config) =>
+          if saved_config.version.value <= 0 ||
+            saved_config.content == "" ||
+            saved_config.created_at.unix_seconds < 0 {
+            raise StoreError::InvalidCheckpoint
+          }
+        None => ()
+      }
+    }
+    None => ()
   }
   let pending = pending_entry_count(checkpoint.journal)
   if pending > config.capacity {
     raise StoreError::InvalidCheckpoint
   }
+  let mut previous_sequence = 0
   for i in 0..<checkpoint.journal.length() {
     let entry = checkpoint.journal[i]
-    if entry.sequence <= 0 ||
+    if entry.sequence <= previous_sequence ||
       entry.sequence >= checkpoint.next_sequence ||
       entry.attempts < 0 {
       raise StoreError::InvalidCheckpoint
     }
-    for j in 0..<i {
-      if checkpoint.journal[j].sequence == entry.sequence {
-        raise StoreError::InvalidCheckpoint
-      }
+    previous_sequence = entry.sequence
+    if entry.envelope.node_id.value == "" ||
+      entry.envelope.created_at.unix_seconds < 0 {
+      raise StoreError::InvalidCheckpoint
+    }
+    let _ = MessageEnvelope::new(
+      version=entry.envelope.version,
+      message_id=entry.envelope.message_id,
+      node_id=entry.envelope.node_id,
+      created_at=entry.envelope.created_at,
+      correlation_id=entry.envelope.correlation_id,
+      payload=entry.envelope.payload,
+    ) catch {
+      _ => raise StoreError::InvalidCheckpoint
     }
   }
   {
@@ -148,6 +183,9 @@ pub fn LocalStore::append_event(
   self : LocalStore,
   envelope~ : MessageEnvelope,
 ) -> Int32 raise StoreError {
+  if self.next_sequence >= 2147483647 {
+    raise StoreError::SequenceExhausted
+  }
   if self.pending_count() >= self.config.capacity {
     match self.config.full_policy {
       QueueFullPolicy::RejectNew => raise StoreError::QueueFull
@@ -198,6 +236,9 @@ pub fn LocalStore::record_attempt(
   for index in 0..<self.journal.length() {
     if self.journal[index].sequence == sequence {
       if self.journal[index].status == JournalStatus::Pending {
+        if self.journal[index].attempts >= 2147483647 {
+          raise StoreError::InvalidCheckpoint
+        }
         self.journal[index].attempts = self.journal[index].attempts + 1
       }
       return
@@ -246,6 +287,9 @@ fn LocalStore::drop_oldest_pending(self : LocalStore) -> Unit raise StoreError {
   }
   match drop_index {
     Some(index) => {
+      if self.dropped_count >= 2147483647 {
+        raise StoreError::InvalidCheckpoint
+      }
       let retained : Array[JournalEntry] = []
       for i in 0..<self.journal.length() {
         if i != index {
