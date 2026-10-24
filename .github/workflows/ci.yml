@@ -34,3 +34,15 @@ jobs:
 
       - name: Run tests
         run: moon test --deny-warn
+
+      - name: Write restart checkpoint
+        run: moon run cmd/recovery -- write "$RUNNER_TEMP/edgeweaver-recovery.json"
+
+      - name: Replay after process restart
+        run: moon run cmd/recovery -- replay "$RUNNER_TEMP/edgeweaver-recovery.json"
+
+      - name: Persist uncertain execution
+        run: moon run cmd/safety -- write "$RUNNER_TEMP/edgeweaver-execution.json"
+
+      - name: Refuse duplicate side effect after restart
+        run: moon run cmd/safety -- resume "$RUNNER_TEMP/edgeweaver-execution.json"
