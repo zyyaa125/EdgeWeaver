@@ -1,6 +1,6 @@
 # EdgeWeaver 本地验收记录（2026-10-24）
 
-环境：Windows 本地 native；`moon 0.1.20261012`、`moonc v0.10.15`。`moon fmt --check`、`moon check --deny-warn`、`moon build` 已通过，`moon test --deny-warn` 为 **75/75 通过**。以下只报告本机真实执行；GitHub Actions 修改后的 Linux 运行结果尚待远端 CI 确认。
+环境：Windows 本地 native；`moon 0.1.20261012`、`moonc v0.10.15`。`moon fmt --check`、`moon check --deny-warn`、`moon build` 已通过，`moon test --deny-warn` 为 **77/77 通过**。以下只报告本机真实执行；GitHub Actions 修改后的 Linux 运行结果尚待远端 CI 确认。
 
 | 场景 | 结果 | 证据与限制 |
 | --- | --- | --- |
@@ -18,5 +18,7 @@
 | 12. 真实网络超时和恢复 | 通过（本机 TCP 边界） | `network/socket_wbtest.mbt` 使无数据读取超时；控制端缺席时本地保留事件，启动后 `replay` 得到 `Accepted; pending=0`。无广域网/掉电试验。 |
 
 补充故障注入：`disk/checkpoint_wbtest.mbt` 覆盖截断、缺字段、不兼容版本与无效内部状态；`disk/safety_wbtest.mbt` 验证损坏执行记录拒绝加载。`cmd/safety write` 写入 `InProgress`、模拟终态保存失败后结束；独立的 `resume` 进程得到 `runner_calls=0`，不重复未知副作用。
+
+收据一致性补充：`disk/receipt_wbtest.mbt` 验证同 ID 同信封才返回 `Duplicate`；同 ID 不同负载返回永久冲突；旧版 ID-only 收据保留原文件并拒绝自动确认。
 
 **尚未通过的总体验收项：** 长期持续采集、实际命令运行器的超时与权限隔离，远程 TLS 与凭证，Linux 干净环境安装/重启恢复，真实硬件适配，掉电和多写者一致性。当前仍是本机单写者原型，不能作为生产部署或完整 P0/P1 完成证明。没有吞吐量或延迟性能数据。

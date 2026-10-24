@@ -49,6 +49,9 @@ type ExecutionDocument derive(ToJson, @json.FromJson)
 pub fn ExecutionDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ExecutionDocument::to_json(Self) -> Json
 
+type LegacyReceiptDocument derive(@json.FromJson)
+pub fn LegacyReceiptDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+
 type PolicyDocument derive(ToJson, @json.FromJson)
 pub fn PolicyDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn PolicyDocument::to_json(Self) -> Json

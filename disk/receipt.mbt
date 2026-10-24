@@ -1,7 +1,7 @@
 ///|
 struct ReceiptDocument {
   format : Int32
-  message_ids : Array[String]
+  messages : Array[@edgeweaver.MessageEnvelope]
 } derive(ToJson, FromJson)
 
 ///|
@@ -9,6 +9,15 @@ pub extend ReceiptDocument with ToJson::{to_json}
 
 ///|
 pub extend ReceiptDocument with @json.FromJson::{from_json}
+
+///|
+struct LegacyReceiptDocument {
+  format : Int32
+  message_ids : Array[String]
+} derive(FromJson)
+
+///|
+pub extend LegacyReceiptDocument with @json.FromJson::{from_json}
 
 ///|
 #borrow(path)
@@ -29,7 +38,7 @@ pub fn receive_once(
   if status < 0 {
     return @edgeweaver.SyncSendResult::RetryableFailure("receipt inaccessible")
   }
-  let ids : Array[String] = if status == 0 {
+  let messages : Array[@edgeweaver.MessageEnvelope] = if status == 0 {
     []
   } else {
     let bytes = read_checkpoint_bytes(encoded_path)
@@ -45,23 +54,61 @@ pub fn receive_once(
         return @edgeweaver.SyncSendResult::RetryableFailure("receipt invalid")
     }
     let document : ReceiptDocument = @json.from_json(json) catch {
-      _ =>
+      _ => {
+        let legacy : LegacyReceiptDocument = @json.from_json(json) catch {
+          _ =>
+            return @edgeweaver.SyncSendResult::RetryableFailure(
+              "receipt invalid",
+            )
+        }
+        if legacy.format == 1 {
+          if legacy.message_ids.length() == 0 {
+            return @edgeweaver.SyncSendResult::RetryableFailure(
+              "legacy receipt has no verifiable messages",
+            )
+          }
+          return @edgeweaver.SyncSendResult::RetryableFailure(
+            "legacy receipt cannot verify payload",
+          )
+        }
         return @edgeweaver.SyncSendResult::RetryableFailure("receipt invalid")
+      }
     }
-    if document.format != 1 {
+    if document.format != 2 || document.messages.length() > 10000 {
       return @edgeweaver.SyncSendResult::RetryableFailure(
         "receipt format unsupported",
       )
     }
-    document.message_ids
+    for previous in document.messages {
+      if previous.node_id.value == "" || previous.created_at.unix_seconds < 0 {
+        return @edgeweaver.SyncSendResult::RetryableFailure("receipt invalid")
+      }
+      let _ = @edgeweaver.MessageEnvelope::new(
+        version=previous.version,
+        message_id=previous.message_id,
+        node_id=previous.node_id,
+        created_at=previous.created_at,
+        correlation_id=previous.correlation_id,
+        payload=previous.payload,
+      ) catch {
+        _ =>
+          return @edgeweaver.SyncSendResult::RetryableFailure("receipt invalid")
+      }
+    }
+    document.messages
   }
-  for id in ids {
-    if id == envelope.message_id {
-      return @edgeweaver.SyncSendResult::Duplicate
+  for previous in messages {
+    if previous.message_id == envelope.message_id {
+      if previous == envelope {
+        return @edgeweaver.SyncSendResult::Duplicate
+      }
+      return @edgeweaver.SyncSendResult::PermanentFailure(
+        "message id conflicts with durable receipt",
+      )
     }
   }
-  ids.push(envelope.message_id)
-  let document = ReceiptDocument::{ format: 1, message_ids: ids, }
+  messages.push(envelope)
+  let document = ReceiptDocument::{ format: 2, messages, }
   let bytes = @utf8.encode(@json.to_json(document).stringify())
   if write_checkpoint_bytes(encoded_path, bytes) != 1 {
     return @edgeweaver.SyncSendResult::RetryableFailure("receipt write failed")
