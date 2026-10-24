@@ -17,16 +17,27 @@ fn main raise {
       raise NetworkDemoError::InvalidArguments
     }
     serve(port, args[3], sessions, timeout_ms)
-  } else if args.length() == 5 && (args[1] == "send" || args[1] == "replay") {
+  } else if args.length() == 4 && args[1] == "queue" {
+    let count = @string.parse_int(args[3].view())
+    if count <= 0 {
+      raise NetworkDemoError::InvalidArguments
+    }
+    queue_events(args[2], count)
+  } else if args.length() == 5 &&
+    (args[1] == "send" || args[1] == "replay" || args[1] == "drain") {
     let port = @string.parse_int(args[2].view())
     let timeout_ms = @string.parse_int(args[4].view())
     if timeout_ms <= 0 {
       raise NetworkDemoError::InvalidArguments
     }
-    send(args[1], port, args[3], timeout_ms)
+    if args[1] == "drain" {
+      drain_events(port, args[3], timeout_ms)
+    } else {
+      send(args[1], port, args[3], timeout_ms)
+    }
   } else {
     println(
-      "usage: serve <port> <receipt-path> <sessions> <timeout-ms> | send|replay <port> <checkpoint-path> <timeout-ms>",
+      "usage: serve <port> <receipt-path> <sessions> <timeout-ms> | queue <checkpoint-path> <count> | send|replay|drain <port> <checkpoint-path> <timeout-ms>",
     )
     raise NetworkDemoError::InvalidArguments
   }
@@ -208,30 +219,11 @@ fn send(
   timeout_ms : Int32,
 ) -> Unit raise {
   let store = if mode == "send" {
-    let current = match @disk.load_checkpoint_if_exists(path) {
-      Some(existing) => existing
-      None =>
-        @edgeweaver.LocalStore::new(
-          config=@edgeweaver.JournalConfig::new(
-            capacity=4,
-            full_policy=@edgeweaver.QueueFullPolicy::RejectNew,
-          ),
-        )
-    }
+    let current = load_or_new_store(path)
     if current.pending_count() != 0 {
       raise NetworkDemoError::PendingRecovery
     }
-    let sequence = current.checkpoint().next_sequence
-    let _ = current.append_event(
-      envelope=@edgeweaver.MessageEnvelope::new(
-        version=@edgeweaver.ProtocolVersion::current(),
-        message_id="network-event-" + sequence.to_string(),
-        node_id=@edgeweaver.NodeId::new(value="network-node"),
-        created_at=now(102),
-        correlation_id=None,
-        payload=@edgeweaver.MessagePayload::Telemetry("sample=1"),
-      ),
-    )
+    append_demo_event(current)
     @disk.save_checkpoint(path, current)
     current
   } else {
@@ -240,6 +232,102 @@ fn send(
   if store.pending_count() != 1 {
     raise NetworkDemoError::PendingRecovery
   }
+  let entry = store.pending_events()[0]
+  let status = exchange_one(port, timeout_ms, entry.envelope)
+  if mode == "send" {
+    if status != @edgeweaver.WireAckStatus::Accepted {
+      raise NetworkDemoError::UnexpectedAck
+    }
+    println(
+      "remote accepted; local pending=" + store.pending_count().to_string(),
+    )
+  } else {
+    match status {
+      @edgeweaver.WireAckStatus::Accepted
+      | @edgeweaver.WireAckStatus::Duplicate => ()
+      _ => raise NetworkDemoError::UnexpectedAck
+    }
+    store.acknowledge(sequence=entry.sequence)
+    @disk.save_checkpoint(path, store)
+    let outcome = match status {
+      @edgeweaver.WireAckStatus::Duplicate => "duplicate"
+      _ => "accepted"
+    }
+    println(
+      "remote " +
+      outcome +
+      "; local pending=" +
+      store.pending_count().to_string(),
+    )
+  }
+}
+
+///|
+fn load_or_new_store(path : String) -> @edgeweaver.LocalStore raise {
+  match @disk.load_checkpoint_if_exists(path) {
+    Some(existing) => existing
+    None =>
+      @edgeweaver.LocalStore::new(
+        config=@edgeweaver.JournalConfig::new(
+          capacity=4,
+          full_policy=@edgeweaver.QueueFullPolicy::RejectNew,
+        ),
+      )
+  }
+}
+
+///|
+fn append_demo_event(store : @edgeweaver.LocalStore) -> Unit raise {
+  let sequence = store.checkpoint().next_sequence
+  let _ = store.append_event(
+    envelope=@edgeweaver.MessageEnvelope::new(
+      version=@edgeweaver.ProtocolVersion::current(),
+      message_id="network-event-" + sequence.to_string(),
+      node_id=@edgeweaver.NodeId::new(value="network-node"),
+      created_at=now(102),
+      correlation_id=None,
+      payload=@edgeweaver.MessagePayload::Telemetry(
+        "sample=" + sequence.to_string(),
+      ),
+    ),
+  )
+}
+
+///|
+fn queue_events(path : String, count : Int32) -> Unit raise {
+  let store = load_or_new_store(path)
+  for _ in 0..<count {
+    append_demo_event(store)
+    @disk.save_checkpoint(path, store)
+  }
+  println("queued pending=" + store.pending_count().to_string())
+}
+
+///|
+fn drain_events(port : Int32, path : String, timeout_ms : Int32) -> Unit raise {
+  let store = @disk.load_checkpoint(path)
+  let mut sent = 0
+  while store.pending_count() > 0 {
+    let entry = store.pending_events()[0]
+    let status = exchange_one(port, timeout_ms, entry.envelope)
+    match status {
+      @edgeweaver.WireAckStatus::Accepted
+      | @edgeweaver.WireAckStatus::Duplicate => ()
+      _ => raise NetworkDemoError::UnexpectedAck
+    }
+    store.acknowledge(sequence=entry.sequence)
+    @disk.save_checkpoint(path, store)
+    sent = sent + 1
+  }
+  println("drained=" + sent.to_string() + "; pending=0")
+}
+
+///|
+fn exchange_one(
+  port : Int32,
+  timeout_ms : Int32,
+  envelope : @edgeweaver.MessageEnvelope,
+) -> @edgeweaver.WireAckStatus raise {
   let socket = @network.connect(port, timeout_ms~)
   socket.send(
     frame(
@@ -279,34 +367,8 @@ fn send(
     @edgeweaver.WireAckStatus::Accepted => ()
     _ => raise NetworkDemoError::UnexpectedAck
   }
-  let entry = store.pending_events()[0]
-  socket.send(frame(@edgeweaver.WireMessage::EventReplay(entry.envelope)))
-  let status = expect_receipt(socket, entry.envelope.message_id)
+  socket.send(frame(@edgeweaver.WireMessage::EventReplay(envelope)))
+  let status = expect_receipt(socket, envelope.message_id)
   socket.close()
-  if mode == "send" {
-    if status != @edgeweaver.WireAckStatus::Accepted {
-      raise NetworkDemoError::UnexpectedAck
-    }
-    println(
-      "remote accepted; local pending=" + store.pending_count().to_string(),
-    )
-  } else {
-    match status {
-      @edgeweaver.WireAckStatus::Accepted
-      | @edgeweaver.WireAckStatus::Duplicate => ()
-      _ => raise NetworkDemoError::UnexpectedAck
-    }
-    store.acknowledge(sequence=entry.sequence)
-    @disk.save_checkpoint(path, store)
-    let outcome = match status {
-      @edgeweaver.WireAckStatus::Duplicate => "duplicate"
-      _ => "accepted"
-    }
-    println(
-      "remote " +
-      outcome +
-      "; local pending=" +
-      store.pending_count().to_string(),
-    )
-  }
+  status
 }
