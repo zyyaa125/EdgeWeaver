@@ -5,6 +5,7 @@ pub(all) suberror TransportError {
   InvalidMaxDelay
   InvalidAttemptLimit
   InvalidTimestamp
+  TimestampOverflow
   InvalidState(ConnectionState)
   RetryNotReady(Timestamp)
   RetryExhausted
@@ -226,6 +227,10 @@ pub fn TransportManager::disconnect(
   }
   self.attempts = self.attempts + 1
   let delay = self.backoff.delay_for(attempt=self.attempts)
+  if at.unix_seconds > 2147483647 - delay {
+    self.attempts = self.attempts - 1
+    raise TransportError::TimestampOverflow
+  }
   self.next_retry_at = Some({ unix_seconds: at.unix_seconds + delay, })
   self.negotiated = None
   self.state = ConnectionState::Backoff

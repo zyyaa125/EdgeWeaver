@@ -230,3 +230,105 @@ test "transport validates backoff configuration" {
     _ => fail("expected invalid attempt limit")
   }
 }
+
+///|
+test "injected transport preserves pending event on alien receipt and timeout" {
+  let manager = try! @edgeweaver.TransportManager::new(
+    protocol=@edgeweaver.ProtocolVersion::current(),
+    capabilities=[@edgeweaver.TransportCapability::EventReplay],
+    backoff=try! @edgeweaver.BackoffPolicy::new(
+      base_delay=1,
+      max_delay=4,
+      max_attempts=3,
+    ),
+  )
+  let mut response = 0
+  let adapter = @edgeweaver.TransportAdapter::{
+    connect: () => @edgeweaver.TransportIoResult::Ready,
+    close: () => (),
+    exchange: _advertisement => {
+      @edgeweaver.TransportHandshakeResult::Peer(
+        @edgeweaver.CapabilityAdvertisement::new(
+          protocol=@edgeweaver.ProtocolVersion::current(),
+          capabilities=[@edgeweaver.TransportCapability::EventReplay],
+        ),
+      )
+    },
+    send_batch: _batch => {
+      response = response + 1
+      if response == 1 {
+        @edgeweaver.TransportBatchResult::Receipts([
+          {
+            message_id: "wrong-id",
+            result: @edgeweaver.SyncSendResult::Accepted,
+          },
+        ])
+      } else if response == 2 {
+        @edgeweaver.TransportBatchResult::Timeout
+      } else {
+        @edgeweaver.TransportBatchResult::Receipts([
+          {
+            message_id: "event-adapter",
+            result: @edgeweaver.SyncSendResult::Duplicate,
+          },
+        ])
+      }
+    },
+  }
+  let _ = try! manager.connect_with(adapter~, at=try! transport_time(10))
+  let store = transport_store()
+  let _ = try! store.append_event(
+    envelope=try! transport_event("event-adapter"),
+  )
+  let config = try! @edgeweaver.SyncConfig::new(batch_size=1, max_attempts=3)
+  let first = try! manager.replay_with(store, config~, adapter~)
+  assert_eq(first.retryable_failures, 1)
+  assert_eq(store.pending_count(), 1)
+  let second = try! manager.replay_with(store, config~, adapter~)
+  assert_eq(second.retryable_failures, 1)
+  assert_eq(store.pending_count(), 1)
+  let third = try! manager.replay_with(store, config~, adapter~)
+  assert_eq(third.deduplicated, 1)
+  assert_eq(store.pending_count(), 0)
+}
+
+///|
+test "injected handshake rejects incompatible version and backs off" {
+  let manager = try! @edgeweaver.TransportManager::new(
+    protocol=@edgeweaver.ProtocolVersion::current(),
+    capabilities=[@edgeweaver.TransportCapability::EventReplay],
+    backoff=try! @edgeweaver.BackoffPolicy::new(
+      base_delay=2,
+      max_delay=4,
+      max_attempts=2,
+    ),
+  )
+  let mut closes = 0
+  let adapter = @edgeweaver.TransportAdapter::{
+    connect: () => @edgeweaver.TransportIoResult::Ready,
+    close: () => closes = closes + 1,
+    exchange: _advertisement => {
+      @edgeweaver.TransportHandshakeResult::Peer(
+        @edgeweaver.CapabilityAdvertisement::new(
+          protocol=try! @edgeweaver.ProtocolVersion::new(major=2, minor=0),
+          capabilities=[@edgeweaver.TransportCapability::EventReplay],
+        ),
+      )
+    },
+    send_batch: _batch => @edgeweaver.TransportBatchResult::Timeout,
+  }
+  try manager.connect_with(adapter~, at=try! transport_time(5)) catch {
+    @edgeweaver.TransportError::UnsupportedProtocol(_) => ()
+    _ => fail("wrong handshake failure")
+  } noraise {
+    _ => fail("incompatible peer accepted")
+  }
+  assert_eq(closes, 1)
+  assert_eq(manager.state(), @edgeweaver.ConnectionState::Backoff)
+  try manager.begin_connect(at=try! transport_time(6)) catch {
+    @edgeweaver.TransportError::RetryNotReady(_) => ()
+    _ => fail("wrong retry window")
+  } noraise {
+    _ => fail("retry started before deadline")
+  }
+}

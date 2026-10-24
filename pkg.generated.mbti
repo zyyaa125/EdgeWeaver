@@ -7,7 +7,13 @@ import {
 }
 
 // Values
+pub fn decode_wire(String) -> WireFrame raise WireError
+
+pub fn encode_wire(WireFrame) -> String raise WireError
+
 pub fn replay_pending(LocalStore, config~ : SyncConfig, cursor~ : SyncCursor, sender~ : (MessageEnvelope) -> SyncSendResult) -> ReplayReport raise StoreError
+
+pub fn wire_max_bytes() -> Int
 
 // Errors
 pub(all) suberror AdapterError {
@@ -165,6 +171,7 @@ pub(all) suberror TransportError {
   InvalidMaxDelay
   InvalidAttemptLimit
   InvalidTimestamp
+  TimestampOverflow
   InvalidState(ConnectionState)
   RetryNotReady(Timestamp)
   RetryExhausted
@@ -176,6 +183,15 @@ pub(all) suberror TransportError {
 pub fn TransportError::equal(Self, Self) -> Bool
 pub fn TransportError::not_equal(Self, Self) -> Bool
 pub fn TransportError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror WireError {
+  TooLarge
+  InvalidData
+  UnsupportedVersion
+} derive(Eq, @debug.Debug)
+pub fn WireError::equal(Self, Self) -> Bool
+pub fn WireError::not_equal(Self, Self) -> Bool
+pub fn WireError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) struct ActuatorAdapter {
@@ -937,6 +953,20 @@ pub fn Timestamp::not_equal(Self, Self) -> Bool
 pub fn Timestamp::to_json(Self) -> Json
 pub fn Timestamp::to_repr(Self) -> @debug.Repr
 
+pub(all) struct TransportAdapter {
+  connect : () -> TransportIoResult
+  close : () -> Unit
+  exchange : (CapabilityAdvertisement) -> TransportHandshakeResult
+  send_batch : (Array[MessageEnvelope]) -> TransportBatchResult
+}
+
+pub(all) enum TransportBatchResult {
+  Receipts(Array[TransportReceipt])
+  Timeout
+  Disconnected
+  Failed(String)
+}
+
 pub(all) enum TransportCapability {
   EventReplay
   Heartbeat
@@ -947,6 +977,20 @@ pub(all) enum TransportCapability {
 pub fn TransportCapability::equal(Self, Self) -> Bool
 pub fn TransportCapability::not_equal(Self, Self) -> Bool
 pub fn TransportCapability::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TransportHandshakeResult {
+  Peer(CapabilityAdvertisement)
+  Timeout
+  Disconnected
+  Failed(String)
+}
+
+pub(all) enum TransportIoResult {
+  Ready
+  Timeout
+  Disconnected
+  Failed(String)
+}
 
 pub(all) struct TransportManager {
   protocol : ProtocolVersion
@@ -959,6 +1003,8 @@ pub(all) struct TransportManager {
   mut cursor : SyncCursor
 } derive(Eq, @debug.Debug)
 pub fn TransportManager::begin_connect(Self, at~ : Timestamp) -> Unit raise TransportError
+pub fn TransportManager::close_with(Self, adapter~ : TransportAdapter, at~ : Timestamp) -> Unit raise TransportError
+pub fn TransportManager::connect_with(Self, adapter~ : TransportAdapter, at~ : Timestamp) -> NegotiatedLink raise TransportError
 pub fn TransportManager::disconnect(Self, at~ : Timestamp) -> Unit raise TransportError
 pub fn TransportManager::equal(Self, Self) -> Bool
 pub fn TransportManager::handshake(Self, peer~ : CapabilityAdvertisement) -> NegotiatedLink raise TransportError
@@ -968,9 +1014,42 @@ pub fn TransportManager::new(protocol~ : ProtocolVersion, capabilities~ : Array[
 pub fn TransportManager::next_retry_at(Self) -> Timestamp?
 pub fn TransportManager::not_equal(Self, Self) -> Bool
 pub fn TransportManager::replay_pending(Self, LocalStore, config~ : SyncConfig, sender~ : (MessageEnvelope) -> SyncSendResult) -> ReplayReport raise TransportError
+pub fn TransportManager::replay_with(Self, LocalStore, config~ : SyncConfig, adapter~ : TransportAdapter) -> ReplayReport raise TransportError
 pub fn TransportManager::state(Self) -> ConnectionState
 pub fn TransportManager::sync_cursor(Self) -> SyncCursor
 pub fn TransportManager::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TransportReceipt {
+  message_id : String
+  result : SyncSendResult
+}
+
+pub(all) enum WireAckStatus {
+  Accepted
+  Duplicate
+  Rejected(String)
+} derive(ToJson, @json.FromJson)
+pub fn WireAckStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn WireAckStatus::to_json(Self) -> Json
+
+pub(all) struct WireFrame {
+  version : ProtocolVersion
+  message : WireMessage
+} derive(ToJson, @json.FromJson)
+pub fn WireFrame::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn WireFrame::to_json(Self) -> Json
+
+pub(all) enum WireMessage {
+  Enroll(String, Array[NodeCapability], Timestamp)
+  Heartbeat(String, NodeHealth, Timestamp)
+  ConfigUpdate(String, ConfigSnapshot)
+  Command(String, String, String, Timestamp)
+  EventReplay(MessageEnvelope)
+  Receipt(String, WireAckStatus)
+  ErrorResponse(String, String)
+} derive(ToJson, @json.FromJson)
+pub fn WireMessage::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn WireMessage::to_json(Self) -> Json
 
 // Type aliases
 
