@@ -21,4 +21,8 @@
 
 收据一致性补充：`disk/receipt_wbtest.mbt` 验证同 ID 同信封才返回 `Duplicate`；同 ID 不同负载返回永久冲突；旧版 ID-only 收据保留原文件并拒绝自动确认。
 
+收据格式 2 上线后，再次以两个独立 `cmd/netdemo` 节点进程发送/回放：先得到 `remote accepted; local pending=1`，后得到 `remote duplicate; local pending=0`；控制端收据 `format=2`、消息数 1。本地 WSL Ubuntu 可访问仓库，但没有 Linux MoonBit 或 C 编译器；官方 MoonBit 安装源在本机连接超时。因此 Linux 原生构建、systemd 与干净环境恢复目前无实测结果，不能用 Windows native 结果代替。
+
+目标边界检查：`moon check --target all --deny-warn` 未通过，首个相关错误来自 `disk/checkpoint_wbtest.mbt` 在非 native 目标中引用了 native 专用解码函数；尝试仅筛选源码目标后，非 native 空 package 又触发未使用导入诊断。仓库首选目标是 native，纯领域逻辑的跨后端可用性仍待单独拆包验证；本报告不宣称全目标通过。
+
 **尚未通过的总体验收项：** 长期持续采集、实际命令运行器的超时与权限隔离，远程 TLS 与凭证，Linux 干净环境安装/重启恢复，真实硬件适配，掉电和多写者一致性。当前仍是本机单写者原型，不能作为生产部署或完整 P0/P1 完成证明。没有吞吐量或延迟性能数据。
