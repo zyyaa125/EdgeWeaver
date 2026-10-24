@@ -170,3 +170,16 @@ MOONBIT_FFI_EXPORT moonbit_bytes_t edgeweaver_checkpoint_read(
   }
   return result;
 }
+
+MOONBIT_FFI_EXPORT int32_t edgeweaver_checkpoint_remove(moonbit_bytes_t path) {
+  if (!edgeweaver_valid_path(path)) return 0;
+#ifdef _WIN32
+  wchar_t *wide_path = edgeweaver_utf8_path((const char *)path);
+  if (wide_path == NULL) return 0;
+  int result = _wremove(wide_path) == 0;
+  free(wide_path);
+  return result;
+#else
+  return remove((const char *)path) == 0;
+#endif
+}

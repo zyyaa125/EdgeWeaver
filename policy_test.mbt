@@ -201,3 +201,136 @@ test "policy trigger budgets survive checkpoint restore" {
     @edgeweaver.PolicyDecision::SafeDefault,
   )
 }
+
+///|
+test "policy rejects repeated evaluation and clock rollback after restore" {
+  let first = try! @edgeweaver.AutonomyRule::new(
+    id="first",
+    condition=@edgeweaver.PolicyCondition::OfflineFor(1),
+    action=@edgeweaver.CommandAction::Execute("restart"),
+    valid_from=try! policy_time(1),
+    valid_until=try! policy_time(100),
+    max_triggers=2,
+  )
+  let second = try! @edgeweaver.AutonomyRule::new(
+    id="second",
+    condition=@edgeweaver.PolicyCondition::OfflineFor(1),
+    action=@edgeweaver.CommandAction::Execute("restart"),
+    valid_from=try! policy_time(1),
+    valid_until=try! policy_time(100),
+    max_triggers=2,
+  )
+  let engine = try! @edgeweaver.AutonomyEngine::new(
+    allowlist=policy_allowlist(),
+    rules=[first, second],
+  )
+  let context = try! @edgeweaver.AutonomyContext::new(
+    lifecycle=@edgeweaver.NodeLifecycle::Offline,
+    health=@edgeweaver.NodeHealth::Healthy,
+    offline_for=5,
+  )
+  match engine.evaluate(context~, at=try! policy_time(10)) {
+    @edgeweaver.PolicyDecision::Execute(id, _) => assert_eq(id, "first")
+    _ => fail("first rule did not take priority")
+  }
+  let restored = try! @edgeweaver.AutonomyEngine::restore(
+    allowlist=policy_allowlist(),
+    rules=engine.checkpoint(),
+  )
+  assert_eq(
+    restored.evaluate(context~, at=try! policy_time(10)),
+    @edgeweaver.PolicyDecision::SafeDefault,
+  )
+  try restored.evaluate(context~, at=try! policy_time(9)) catch {
+    @edgeweaver.PolicyError::InvalidTimestamp => ()
+    _ => fail("wrong clock rollback error")
+  } noraise {
+    _ => fail("clock rollback accepted")
+  }
+  assert_eq(restored.checkpoint()[0].fired_count, 1)
+  assert_eq(restored.checkpoint()[1].fired_count, 0)
+}
+
+///|
+test "policy restore rejects counter reset and version mismatch" {
+  let rule = try! @edgeweaver.AutonomyRule::new(
+    id="bounded",
+    condition=@edgeweaver.PolicyCondition::OfflineFor(1),
+    action=@edgeweaver.CommandAction::Execute("restart"),
+    valid_from=try! policy_time(1),
+    valid_until=try! policy_time(10),
+    max_triggers=1,
+  )
+  rule.fired_count = 2
+  try
+    @edgeweaver.AutonomyEngine::restore(allowlist=policy_allowlist(), rules=[
+      rule,
+    ])
+  catch {
+    @edgeweaver.PolicyError::InvalidCheckpoint => ()
+    _ => fail("wrong counter error")
+  } noraise {
+    _ => fail("overdrawn trigger budget accepted")
+  }
+  let future = try! @edgeweaver.AutonomyRule::new(
+    id="future",
+    condition=@edgeweaver.PolicyCondition::OfflineFor(1),
+    action=@edgeweaver.CommandAction::Execute("restart"),
+    valid_from=try! policy_time(1),
+    valid_until=try! policy_time(10),
+    max_triggers=1,
+  )
+  let changed : @edgeweaver.AutonomyRule = {
+    id: future.id,
+    condition: future.condition,
+    action: future.action,
+    valid_from: future.valid_from,
+    valid_until: future.valid_until,
+    max_triggers: future.max_triggers,
+    fired_count: 0,
+    policy_version: 2,
+    last_evaluated_at: None,
+  }
+  try
+    @edgeweaver.AutonomyEngine::restore(allowlist=policy_allowlist(), rules=[
+      changed,
+    ])
+  catch {
+    @edgeweaver.PolicyError::UnsupportedPolicyVersion => ()
+    _ => fail("wrong policy version error")
+  } noraise {
+    _ => fail("unknown policy version accepted")
+  }
+}
+
+///|
+test "offline action is withheld when budget persistence fails" {
+  let rule = try! @edgeweaver.AutonomyRule::new(
+    id="persist-first",
+    condition=@edgeweaver.PolicyCondition::OfflineFor(1),
+    action=@edgeweaver.CommandAction::Execute("restart"),
+    valid_from=try! policy_time(1),
+    valid_until=try! policy_time(20),
+    max_triggers=1,
+  )
+  let engine = try! @edgeweaver.AutonomyEngine::new(
+    allowlist=policy_allowlist(),
+    rules=[rule],
+  )
+  let context = try! @edgeweaver.AutonomyContext::new(
+    lifecycle=@edgeweaver.NodeLifecycle::Offline,
+    health=@edgeweaver.NodeHealth::Healthy,
+    offline_for=2,
+  )
+  try
+    engine.evaluate_durable(context~, at=try! policy_time(10), persist=_rules => {
+      false
+    })
+  catch {
+    @edgeweaver.PolicyError::PersistenceFailed => ()
+    _ => fail("wrong budget save error")
+  } noraise {
+    _ => fail("action returned without durable budget")
+  }
+  assert_eq(engine.checkpoint()[0].fired_count, 1)
+}

@@ -2,10 +2,15 @@
 /// Errors raised while dispatching an edge command.
 pub(all) suberror EdgeError {
   EmptyAllowlistedAction
+  InvalidActionName
+  InvalidExecutionCheckpoint
+  PersistenceFailed
+  OutputTooLarge
   InvalidTimestamp
   NodeNotReady(NodeLifecycle)
   RetiredNode(NodeId)
   CommandTargetMismatch(CommandId)
+  CommandConflict(CommandId)
   ActionNotAllowed(CommandAction)
   MissingCapability(NodeCapability)
   ExpiredCommand(CommandId)
@@ -36,8 +41,14 @@ pub fn CommandAllowlist::new(
 ) -> CommandAllowlist raise EdgeError {
   for action in actions {
     match action {
-      AllowedAction::Execute(name) if name == "" =>
-        raise EdgeError::EmptyAllowlistedAction
+      AllowedAction::Execute(name) => {
+        if name == "" {
+          raise EdgeError::EmptyAllowlistedAction
+        }
+        if !valid_action_name(name) {
+          raise EdgeError::InvalidActionName
+        }
+      }
       _ => ()
     }
   }
@@ -56,7 +67,8 @@ pub fn CommandAllowlist::allows(
       (AllowedAction::ReadTelemetry, CommandAction::ReadTelemetry) =>
         return true
       (AllowedAction::Execute(expected), CommandAction::Execute(actual)) if expected ==
-        actual => return true
+        actual &&
+        valid_action_name(actual) => return true
       _ => ()
     }
   }
@@ -76,7 +88,13 @@ pub(all) enum ExecutionStatus {
   InProgress
   Succeeded
   Failed
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend ExecutionStatus with ToJson::{to_json}
+
+///|
+pub extend ExecutionStatus with @json.FromJson::{from_json}
 
 ///|
 /// A persisted execution record used to make retries idempotent.
@@ -86,13 +104,25 @@ pub(all) struct ExecutionRecord {
   message : String
   started_at : Timestamp
   completed_at : Timestamp?
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend ExecutionRecord with ToJson::{to_json}
+
+///|
+pub extend ExecutionRecord with @json.FromJson::{from_json}
 
 ///|
 /// A checkpoint that can be persisted and restored across process restarts.
 pub(all) struct ExecutionCheckpoint {
   records : Array[ExecutionRecord]
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend ExecutionCheckpoint with ToJson::{to_json}
+
+///|
+pub extend ExecutionCheckpoint with @json.FromJson::{from_json}
 
 ///|
 /// Local command dispatcher for one enrolled node.
@@ -119,6 +149,49 @@ pub fn EdgeExecutor::restore(
   checkpoint~ : ExecutionCheckpoint,
 ) -> EdgeExecutor {
   { node, allowlist, records: copy_execution_records(checkpoint.records), }
+}
+
+///|
+/// Validates a durable execution checkpoint before exposing any result.
+pub fn EdgeExecutor::restore_checked(
+  node~ : Node,
+  allowlist~ : CommandAllowlist,
+  checkpoint~ : ExecutionCheckpoint,
+) -> EdgeExecutor raise EdgeError {
+  for i in 0..<checkpoint.records.length() {
+    let record = checkpoint.records[i]
+    if record.command.node_id != node.id ||
+      record.command.id.value == "" ||
+      record.started_at.unix_seconds < 0 {
+      raise EdgeError::InvalidExecutionCheckpoint
+    }
+    for j in 0..<i {
+      if checkpoint.records[j].command.id == record.command.id {
+        raise EdgeError::InvalidExecutionCheckpoint
+      }
+    }
+    match record.status {
+      ExecutionStatus::InProgress =>
+        if record.command.state != CommandState::Running ||
+          record.completed_at != None ||
+          record.message != "" {
+          raise EdgeError::InvalidExecutionCheckpoint
+        }
+      ExecutionStatus::Succeeded =>
+        if record.command.state != CommandState::Succeeded ||
+          record.completed_at == None ||
+          record.message == "" {
+          raise EdgeError::InvalidExecutionCheckpoint
+        }
+      ExecutionStatus::Failed =>
+        if record.command.state != CommandState::Failed ||
+          record.completed_at == None ||
+          record.message == "" {
+          raise EdgeError::InvalidExecutionCheckpoint
+        }
+    }
+  }
+  EdgeExecutor::restore(node~, allowlist~, checkpoint~)
 }
 
 ///|
@@ -157,6 +230,20 @@ pub fn EdgeExecutor::execute(
   at~ : Timestamp,
   runner~ : (CommandAction) -> ExecutionResult,
 ) -> ExecutionRecord raise EdgeError {
+  self.execute_durable(command~, at~, persist=_checkpoint => true, runner~)
+}
+
+///|
+/// Writes InProgress before a side effect and saves the terminal result after.
+/// If either save fails, the command is never presented as successful and a
+/// restored InProgress record prevents an automatic retry.
+pub fn EdgeExecutor::execute_durable(
+  self : EdgeExecutor,
+  command~ : Command,
+  at~ : Timestamp,
+  persist~ : (ExecutionCheckpoint) -> Bool,
+  runner~ : (CommandAction) -> ExecutionResult,
+) -> ExecutionRecord raise EdgeError {
   if at.unix_seconds < 0 {
     raise EdgeError::InvalidTimestamp
   }
@@ -164,7 +251,15 @@ pub fn EdgeExecutor::execute(
     raise EdgeError::CommandTargetMismatch(command.id)
   }
   match self.find_record_index(command_id=command.id) {
-    Some(index) => return self.records[index]
+    Some(index) => {
+      let previous = self.records[index].command
+      if previous.action != command.action ||
+        previous.issued_at != command.issued_at ||
+        previous.expires_at != command.expires_at {
+        raise EdgeError::CommandConflict(command.id)
+      }
+      return self.records[index]
+    }
     None => ()
   }
   match self.node.lifecycle {
@@ -205,11 +300,19 @@ pub fn EdgeExecutor::execute(
     started_at: at,
     completed_at: None,
   }
+  let before = self.checkpoint()
+  before.records.push(started)
+  if !persist(before) {
+    raise EdgeError::PersistenceFailed
+  }
   self.records.push(started)
   match runner(command.action) {
     ExecutionResult::Succeeded(message) => {
       if message == "" {
         raise EdgeError::EmptyResultMessage
+      }
+      if @utf8.encode(message).length() > 4096 {
+        raise EdgeError::OutputTooLarge
       }
       let completed = running.succeed(at~, message~) catch {
         error => raise EdgeError::CommandTransition(error)
@@ -221,12 +324,20 @@ pub fn EdgeExecutor::execute(
         started_at: at,
         completed_at: Some(at),
       }
+      let completed_checkpoint = self.checkpoint()
+      completed_checkpoint.records[completed_checkpoint.records.length() - 1] = record
+      if !persist(completed_checkpoint) {
+        raise EdgeError::PersistenceFailed
+      }
       self.records[self.records.length() - 1] = record
       record
     }
     ExecutionResult::Failed(message) => {
       if message == "" {
         raise EdgeError::EmptyResultMessage
+      }
+      if @utf8.encode(message).length() > 4096 {
+        raise EdgeError::OutputTooLarge
       }
       let completed = running.fail(at~, message~) catch {
         error => raise EdgeError::CommandTransition(error)
@@ -238,10 +349,33 @@ pub fn EdgeExecutor::execute(
         started_at: at,
         completed_at: Some(at),
       }
+      let completed_checkpoint = self.checkpoint()
+      completed_checkpoint.records[completed_checkpoint.records.length() - 1] = record
+      if !persist(completed_checkpoint) {
+        raise EdgeError::PersistenceFailed
+      }
       self.records[self.records.length() - 1] = record
       record
     }
   }
+}
+
+///|
+fn valid_action_name(name : String) -> Bool {
+  if name.length() == 0 || name.length() > 64 {
+    return false
+  }
+  for character in name.to_array() {
+    if !((character >= 'a' && character <= 'z') ||
+      (character >= 'A' && character <= 'Z') ||
+      (character >= '0' && character <= '9') ||
+      character == '_' ||
+      character == '-' ||
+      character == '.') {
+      return false
+    }
+  }
+  true
 }
 
 ///|

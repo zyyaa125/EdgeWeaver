@@ -7,5 +7,9 @@ import {
 
 options(
   "native-stub": [ "checkpoint.c" ],
-  targets: { "checkpoint.mbt": [ "native" ], "receipt.mbt": [ "native" ] },
+  targets: {
+    "checkpoint.mbt": [ "native" ],
+    "receipt.mbt": [ "native" ],
+    "safety.mbt": [ "native" ],
+  },
 )

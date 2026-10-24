@@ -236,3 +236,157 @@ test "edge executor rejects wrong target and expired command" {
     _ => fail("expected expired command rejection")
   }
 }
+
+///|
+test "durable execution records uncertainty before side effects" {
+  let node = edge_node([@edgeweaver.NodeCapability::CommandExecution])
+  let allowlist = try! @edgeweaver.CommandAllowlist::new(actions=[
+    @edgeweaver.AllowedAction::Execute("restart"),
+  ])
+  let executor = @edgeweaver.EdgeExecutor::new(node~, allowlist~)
+  let command = edge_command(
+    "durable-command",
+    node.id,
+    @edgeweaver.CommandAction::Execute("restart"),
+  )
+  let mut runner_calls = 0
+  try
+    executor.execute_durable(
+      command~,
+      at=try! edge_time(10),
+      persist=_checkpoint => false,
+      runner=_action => {
+        runner_calls = runner_calls + 1
+        @edgeweaver.ExecutionResult::Succeeded("done")
+      },
+    )
+  catch {
+    @edgeweaver.EdgeError::PersistenceFailed => ()
+    _ => fail("wrong persistence error")
+  } noraise {
+    _ => fail("side effect started without durable record")
+  }
+  assert_eq(runner_calls, 0)
+  assert_eq(executor.records().length(), 0)
+
+  let mut saves = 0
+  let mut disk_image : @edgeweaver.ExecutionCheckpoint? = None
+  try
+    executor.execute_durable(
+      command~,
+      at=try! edge_time(10),
+      persist=checkpoint => {
+        saves = saves + 1
+        if saves == 1 {
+          disk_image = Some(checkpoint)
+          true
+        } else {
+          false
+        }
+      },
+      runner=_action => {
+        runner_calls = runner_calls + 1
+        @edgeweaver.ExecutionResult::Succeeded("done")
+      },
+    )
+  catch {
+    @edgeweaver.EdgeError::PersistenceFailed => ()
+    _ => fail("wrong terminal persistence error")
+  } noraise {
+    _ => fail("terminal result presented without durable write")
+  }
+  assert_eq(runner_calls, 1)
+  assert_eq(
+    executor.records()[0].status,
+    @edgeweaver.ExecutionStatus::InProgress,
+  )
+  let recovered = try! @edgeweaver.EdgeExecutor::restore_checked(
+    node~,
+    allowlist~,
+    checkpoint=disk_image.unwrap(),
+  )
+  let record = try! recovered.execute(command~, at=try! edge_time(11), runner=_action => {
+    runner_calls = runner_calls + 1
+    @edgeweaver.ExecutionResult::Succeeded("should not run")
+  })
+  assert_eq(runner_calls, 1)
+  assert_eq(record.status, @edgeweaver.ExecutionStatus::InProgress)
+}
+
+///|
+test "command allowlist rejects shell-shaped names" {
+  try
+    @edgeweaver.CommandAllowlist::new(actions=[
+      @edgeweaver.AllowedAction::Execute("sh -c echo"),
+    ])
+  catch {
+    @edgeweaver.EdgeError::InvalidActionName => ()
+    _ => fail("wrong action validation error")
+  } noraise {
+    _ => fail("shell-shaped action accepted")
+  }
+}
+
+///|
+test "oversized runner output remains an uncertain execution" {
+  let node = edge_node([@edgeweaver.NodeCapability::CommandExecution])
+  let allowlist = try! @edgeweaver.CommandAllowlist::new(actions=[
+    @edgeweaver.AllowedAction::Execute("restart"),
+  ])
+  let executor = @edgeweaver.EdgeExecutor::new(node~, allowlist~)
+  let command = edge_command(
+    "large-output",
+    node.id,
+    @edgeweaver.CommandAction::Execute("restart"),
+  )
+  try
+    executor.execute_durable(
+      command~,
+      at=try! edge_time(10),
+      persist=_checkpoint => true,
+      runner=_action => @edgeweaver.ExecutionResult::Succeeded("x".repeat(4097)),
+    )
+  catch {
+    @edgeweaver.EdgeError::OutputTooLarge => ()
+    _ => fail("wrong output limit error")
+  } noraise {
+    _ => fail("oversized output accepted")
+  }
+  assert_eq(
+    executor.records()[0].status,
+    @edgeweaver.ExecutionStatus::InProgress,
+  )
+}
+
+///|
+test "duplicate command id with changed action is rejected" {
+  let node = edge_node([@edgeweaver.NodeCapability::CommandExecution])
+  let allowlist = try! @edgeweaver.CommandAllowlist::new(actions=[
+    @edgeweaver.AllowedAction::Execute("restart"),
+    @edgeweaver.AllowedAction::Execute("reset"),
+  ])
+  let executor = @edgeweaver.EdgeExecutor::new(node~, allowlist~)
+  let original = edge_command(
+    "same-id",
+    node.id,
+    @edgeweaver.CommandAction::Execute("restart"),
+  )
+  let _ = try! executor.execute(command=original, at=try! edge_time(10), runner=_action => {
+    @edgeweaver.ExecutionResult::Succeeded("done")
+  })
+  let changed = edge_command(
+    "same-id",
+    node.id,
+    @edgeweaver.CommandAction::Execute("reset"),
+  )
+  try
+    executor.execute(command=changed, at=try! edge_time(11), runner=_action => {
+      @edgeweaver.ExecutionResult::Succeeded("unexpected")
+    })
+  catch {
+    @edgeweaver.EdgeError::CommandConflict(_) => ()
+    _ => fail("wrong command conflict error")
+  } noraise {
+    _ => fail("conflicting idempotency key accepted")
+  }
+}

@@ -7,6 +7,9 @@ pub(all) suberror PolicyError {
   InvalidMaxTriggers
   InvalidOfflineDuration
   InvalidTimestamp
+  InvalidCheckpoint
+  UnsupportedPolicyVersion
+  PersistenceFailed
   DuplicateRuleId(String)
   ActionNotAllowed(CommandAction)
 } derive(Debug, Eq)
@@ -16,7 +19,13 @@ pub(all) suberror PolicyError {
 pub(all) enum PolicyCondition {
   OfflineFor(Int32)
   HealthIs(NodeHealth)
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend PolicyCondition with ToJson::{to_json}
+
+///|
+pub extend PolicyCondition with @json.FromJson::{from_json}
 
 ///|
 /// A bounded local action with a validity window and trigger budget.
@@ -28,7 +37,15 @@ pub(all) struct AutonomyRule {
   valid_until : Timestamp
   max_triggers : Int32
   mut fired_count : Int32
-} derive(Debug, Eq)
+  policy_version : Int32
+  mut last_evaluated_at : Timestamp?
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend AutonomyRule with ToJson::{to_json}
+
+///|
+pub extend AutonomyRule with @json.FromJson::{from_json}
 
 ///|
 /// Creates a validated offline autonomy rule.
@@ -66,6 +83,8 @@ pub fn AutonomyRule::new(
     valid_until,
     max_triggers,
     fired_count: 0,
+    policy_version: 1,
+    last_evaluated_at: None,
   }
 }
 
@@ -112,6 +131,25 @@ pub fn AutonomyEngine::new(
 ) -> AutonomyEngine raise PolicyError {
   for i in 0..<rules.length() {
     let rule = rules[i]
+    if rule.policy_version != 1 {
+      raise PolicyError::UnsupportedPolicyVersion
+    }
+    if rule.id == "" ||
+      rule.max_triggers <= 0 ||
+      rule.fired_count < 0 ||
+      rule.fired_count > rule.max_triggers ||
+      rule.valid_from.unix_seconds < 0 ||
+      rule.valid_until.unix_seconds < rule.valid_from.unix_seconds {
+      raise PolicyError::InvalidCheckpoint
+    }
+    match rule.last_evaluated_at {
+      Some(previous) if previous.unix_seconds < 0 =>
+        raise PolicyError::InvalidCheckpoint
+      _ => ()
+    }
+    if i > 0 && rule.last_evaluated_at != rules[0].last_evaluated_at {
+      raise PolicyError::InvalidCheckpoint
+    }
     if !allowlist.allows(action=rule.action) {
       raise PolicyError::ActionNotAllowed(rule.action)
     }
@@ -134,8 +172,31 @@ pub fn AutonomyEngine::evaluate(
   context~ : AutonomyContext,
   at~ : Timestamp,
 ) -> PolicyDecision raise PolicyError {
+  self.evaluate_durable(context~, at~, persist=_rules => true)
+}
+
+///|
+/// Persists a consumed trigger budget before returning an action decision.
+pub fn AutonomyEngine::evaluate_durable(
+  self : AutonomyEngine,
+  context~ : AutonomyContext,
+  at~ : Timestamp,
+  persist~ : (Array[AutonomyRule]) -> Bool,
+) -> PolicyDecision raise PolicyError {
   if at.unix_seconds < 0 {
     raise PolicyError::InvalidTimestamp
+  }
+  if self.rules.length() > 0 {
+    match self.rules[0].last_evaluated_at {
+      Some(previous) if at.unix_seconds < previous.unix_seconds =>
+        raise PolicyError::InvalidTimestamp
+      Some(previous) if at.unix_seconds == previous.unix_seconds =>
+        return PolicyDecision::SafeDefault
+      _ => ()
+    }
+  }
+  for index in 0..<self.rules.length() {
+    self.rules[index].last_evaluated_at = Some(at)
   }
   if context.offline_for < 0 {
     return PolicyDecision::SafeDefault
@@ -157,6 +218,9 @@ pub fn AutonomyEngine::evaluate(
       continue
     }
     self.rules[index].fired_count = rule.fired_count + 1
+    if !persist(self.checkpoint()) {
+      raise PolicyError::PersistenceFailed
+    }
     return PolicyDecision::Execute(rule.id, rule.action)
   }
   PolicyDecision::SafeDefault
@@ -200,6 +264,8 @@ fn copy_rules(rules : Array[AutonomyRule]) -> Array[AutonomyRule] {
       valid_until: rule.valid_until,
       max_triggers: rule.max_triggers,
       fired_count: rule.fired_count,
+      policy_version: rule.policy_version,
+      last_evaluated_at: rule.last_evaluated_at,
     })
   }
   copy

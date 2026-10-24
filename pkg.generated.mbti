@@ -95,10 +95,15 @@ pub fn DiagnosticsError::to_repr(Self) -> @debug.Repr
 
 pub(all) suberror EdgeError {
   EmptyAllowlistedAction
+  InvalidActionName
+  InvalidExecutionCheckpoint
+  PersistenceFailed
+  OutputTooLarge
   InvalidTimestamp
   NodeNotReady(NodeLifecycle)
   RetiredNode(NodeId)
   CommandTargetMismatch(CommandId)
+  CommandConflict(CommandId)
   ActionNotAllowed(CommandAction)
   MissingCapability(NodeCapability)
   ExpiredCommand(CommandId)
@@ -128,6 +133,9 @@ pub(all) suberror PolicyError {
   InvalidMaxTriggers
   InvalidOfflineDuration
   InvalidTimestamp
+  InvalidCheckpoint
+  UnsupportedPolicyVersion
+  PersistenceFailed
   DuplicateRuleId(String)
   ActionNotAllowed(CommandAction)
 } derive(Eq, @debug.Debug)
@@ -241,6 +249,7 @@ pub(all) struct AutonomyEngine {
 pub fn AutonomyEngine::checkpoint(Self) -> Array[AutonomyRule]
 pub fn AutonomyEngine::equal(Self, Self) -> Bool
 pub fn AutonomyEngine::evaluate(Self, context~ : AutonomyContext, at~ : Timestamp) -> PolicyDecision raise PolicyError
+pub fn AutonomyEngine::evaluate_durable(Self, context~ : AutonomyContext, at~ : Timestamp, persist~ : (Array[AutonomyRule]) -> Bool) -> PolicyDecision raise PolicyError
 pub fn AutonomyEngine::new(allowlist~ : CommandAllowlist, rules~ : Array[AutonomyRule]) -> Self raise PolicyError
 pub fn AutonomyEngine::not_equal(Self, Self) -> Bool
 pub fn AutonomyEngine::restore(allowlist~ : CommandAllowlist, rules~ : Array[AutonomyRule]) -> Self raise PolicyError
@@ -254,10 +263,14 @@ pub(all) struct AutonomyRule {
   valid_until : Timestamp
   max_triggers : Int
   mut fired_count : Int
-} derive(Eq, @debug.Debug)
+  policy_version : Int
+  mut last_evaluated_at : Timestamp?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn AutonomyRule::equal(Self, Self) -> Bool
+pub fn AutonomyRule::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn AutonomyRule::new(id~ : String, condition~ : PolicyCondition, action~ : CommandAction, valid_from~ : Timestamp, valid_until~ : Timestamp, max_triggers~ : Int) -> Self raise PolicyError
 pub fn AutonomyRule::not_equal(Self, Self) -> Bool
+pub fn AutonomyRule::to_json(Self) -> Json
 pub fn AutonomyRule::to_repr(Self) -> @debug.Repr
 
 pub(all) struct BackoffPolicy {
@@ -289,26 +302,30 @@ pub(all) struct Command {
   updated_at : Timestamp
   state : CommandState
   result : CommandResult?
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn Command::accept(Self, at~ : Timestamp) -> Self raise CommandError
 pub fn Command::equal(Self, Self) -> Bool
 pub fn Command::expire(Self, at~ : Timestamp) -> Self raise CommandError
 pub fn Command::fail(Self, at~ : Timestamp, message~ : String) -> Self raise CommandError
+pub fn Command::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn Command::new(id~ : CommandId, node_id~ : NodeId, action~ : CommandAction, issued_at~ : Timestamp, expires_at~ : Timestamp) -> Self raise CommandError
 pub fn Command::not_equal(Self, Self) -> Bool
 pub fn Command::reject(Self, at~ : Timestamp, reason~ : String) -> Self raise CommandError
 pub fn Command::same_identity(Self, other~ : Self) -> Bool
 pub fn Command::start(Self, at~ : Timestamp) -> Self raise CommandError
 pub fn Command::succeed(Self, at~ : Timestamp, message~ : String) -> Self raise CommandError
+pub fn Command::to_json(Self) -> Json
 pub fn Command::to_repr(Self) -> @debug.Repr
 
 pub(all) enum CommandAction {
   ApplyConfig(ConfigVersion)
   ReadTelemetry
   Execute(String)
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn CommandAction::equal(Self, Self) -> Bool
+pub fn CommandAction::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn CommandAction::not_equal(Self, Self) -> Bool
+pub fn CommandAction::to_json(Self) -> Json
 pub fn CommandAction::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CommandAllowlist {
@@ -322,20 +339,24 @@ pub fn CommandAllowlist::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CommandId {
   value : String
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn CommandId::equal(Self, Self) -> Bool
+pub fn CommandId::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn CommandId::new(value~ : String) -> Self raise CommandError
 pub fn CommandId::not_equal(Self, Self) -> Bool
+pub fn CommandId::to_json(Self) -> Json
 pub fn CommandId::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CommandResult {
   state : CommandState
   message : String
   completed_at : Timestamp
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn CommandResult::equal(Self, Self) -> Bool
+pub fn CommandResult::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn CommandResult::new(state~ : CommandState, message~ : String, completed_at~ : Timestamp) -> Self raise CommandError
 pub fn CommandResult::not_equal(Self, Self) -> Bool
+pub fn CommandResult::to_json(Self) -> Json
 pub fn CommandResult::to_repr(Self) -> @debug.Repr
 
 pub(all) enum CommandState {
@@ -346,9 +367,11 @@ pub(all) enum CommandState {
   Failed
   Expired
   Rejected
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn CommandState::equal(Self, Self) -> Bool
+pub fn CommandState::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn CommandState::not_equal(Self, Self) -> Bool
+pub fn CommandState::to_json(Self) -> Json
 pub fn CommandState::to_repr(Self) -> @debug.Repr
 
 pub(all) enum CommandUpdate {
@@ -490,11 +513,13 @@ pub(all) struct EdgeExecutor {
 pub fn EdgeExecutor::checkpoint(Self) -> ExecutionCheckpoint
 pub fn EdgeExecutor::equal(Self, Self) -> Bool
 pub fn EdgeExecutor::execute(Self, command~ : Command, at~ : Timestamp, runner~ : (CommandAction) -> ExecutionResult) -> ExecutionRecord raise EdgeError
+pub fn EdgeExecutor::execute_durable(Self, command~ : Command, at~ : Timestamp, persist~ : (ExecutionCheckpoint) -> Bool, runner~ : (CommandAction) -> ExecutionResult) -> ExecutionRecord raise EdgeError
 pub fn EdgeExecutor::new(node~ : Node, allowlist~ : CommandAllowlist) -> Self
 pub fn EdgeExecutor::not_equal(Self, Self) -> Bool
 pub fn EdgeExecutor::record(Self, command_id~ : CommandId) -> ExecutionRecord?
 pub fn EdgeExecutor::records(Self) -> Array[ExecutionRecord]
 pub fn EdgeExecutor::restore(node~ : Node, allowlist~ : CommandAllowlist, checkpoint~ : ExecutionCheckpoint) -> Self
+pub fn EdgeExecutor::restore_checked(node~ : Node, allowlist~ : CommandAllowlist, checkpoint~ : ExecutionCheckpoint) -> Self raise EdgeError
 pub fn EdgeExecutor::to_repr(Self) -> @debug.Repr
 
 pub(all) struct EnrollmentRequest {
@@ -510,9 +535,11 @@ pub fn EnrollmentRequest::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ExecutionCheckpoint {
   records : Array[ExecutionRecord]
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn ExecutionCheckpoint::equal(Self, Self) -> Bool
+pub fn ExecutionCheckpoint::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ExecutionCheckpoint::not_equal(Self, Self) -> Bool
+pub fn ExecutionCheckpoint::to_json(Self) -> Json
 pub fn ExecutionCheckpoint::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ExecutionRecord {
@@ -521,9 +548,11 @@ pub(all) struct ExecutionRecord {
   message : String
   started_at : Timestamp
   completed_at : Timestamp?
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn ExecutionRecord::equal(Self, Self) -> Bool
+pub fn ExecutionRecord::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ExecutionRecord::not_equal(Self, Self) -> Bool
+pub fn ExecutionRecord::to_json(Self) -> Json
 pub fn ExecutionRecord::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ExecutionResult {
@@ -538,9 +567,11 @@ pub(all) enum ExecutionStatus {
   InProgress
   Succeeded
   Failed
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn ExecutionStatus::equal(Self, Self) -> Bool
+pub fn ExecutionStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ExecutionStatus::not_equal(Self, Self) -> Bool
+pub fn ExecutionStatus::to_json(Self) -> Json
 pub fn ExecutionStatus::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Heartbeat {
@@ -771,9 +802,11 @@ pub fn NodeLifecycle::to_repr(Self) -> @debug.Repr
 pub(all) enum PolicyCondition {
   OfflineFor(Int)
   HealthIs(NodeHealth)
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn PolicyCondition::equal(Self, Self) -> Bool
+pub fn PolicyCondition::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn PolicyCondition::not_equal(Self, Self) -> Bool
+pub fn PolicyCondition::to_json(Self) -> Json
 pub fn PolicyCondition::to_repr(Self) -> @debug.Repr
 
 pub(all) enum PolicyDecision {

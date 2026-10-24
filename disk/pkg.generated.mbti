@@ -12,9 +12,21 @@ pub fn load_checkpoint(String) -> @edgeweaver.LocalStore raise DiskCheckpointErr
 
 pub fn load_checkpoint_if_exists(String) -> @edgeweaver.LocalStore? raise DiskCheckpointError
 
+pub fn load_execution_checkpoint(String, @edgeweaver.Node, @edgeweaver.CommandAllowlist) -> @edgeweaver.EdgeExecutor raise DiskCheckpointError
+
+pub fn load_policy_checkpoint(String, @edgeweaver.CommandAllowlist) -> @edgeweaver.AutonomyEngine raise DiskCheckpointError
+
 pub fn receive_once(String, @edgeweaver.MessageEnvelope) -> @edgeweaver.SyncSendResult
 
 pub fn save_checkpoint(String, @edgeweaver.LocalStore) -> Unit raise DiskCheckpointError
+
+pub fn save_execution_checkpoint(String, @edgeweaver.EdgeExecutor) -> Unit raise DiskCheckpointError
+
+pub fn save_execution_records(String, node~ : @edgeweaver.Node, allowlist~ : @edgeweaver.CommandAllowlist, checkpoint~ : @edgeweaver.ExecutionCheckpoint) -> Unit raise DiskCheckpointError
+
+pub fn save_policy_checkpoint(String, @edgeweaver.AutonomyEngine) -> Unit raise DiskCheckpointError
+
+pub fn save_policy_rules(String, allowlist~ : @edgeweaver.CommandAllowlist, rules~ : Array[@edgeweaver.AutonomyRule]) -> Unit raise DiskCheckpointError
 
 // Errors
 pub(all) suberror DiskCheckpointError {
@@ -32,6 +44,14 @@ pub fn DiskCheckpointError::to_repr(Self) -> @debug.Repr
 type CheckpointDocument derive(ToJson, @json.FromJson)
 pub fn CheckpointDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn CheckpointDocument::to_json(Self) -> Json
+
+type ExecutionDocument derive(ToJson, @json.FromJson)
+pub fn ExecutionDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ExecutionDocument::to_json(Self) -> Json
+
+type PolicyDocument derive(ToJson, @json.FromJson)
+pub fn PolicyDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn PolicyDocument::to_json(Self) -> Json
 
 type ReceiptDocument derive(ToJson, @json.FromJson)
 pub fn ReceiptDocument::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError

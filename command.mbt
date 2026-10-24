@@ -14,7 +14,13 @@ pub(all) suberror CommandError {
 /// A stable idempotency key for one command request.
 pub(all) struct CommandId {
   value : String
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend CommandId with ToJson::{to_json}
+
+///|
+pub extend CommandId with @json.FromJson::{from_json}
 
 ///|
 /// Creates a non-empty command identifier.
@@ -31,7 +37,13 @@ pub(all) enum CommandAction {
   ApplyConfig(ConfigVersion)
   ReadTelemetry
   Execute(String)
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend CommandAction with ToJson::{to_json}
+
+///|
+pub extend CommandAction with @json.FromJson::{from_json}
 
 ///|
 /// Lifecycle states for one command request.
@@ -43,7 +55,13 @@ pub(all) enum CommandState {
   Failed
   Expired
   Rejected
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend CommandState with ToJson::{to_json}
+
+///|
+pub extend CommandState with @json.FromJson::{from_json}
 
 ///|
 /// Terminal information attached to a completed command.
@@ -51,7 +69,13 @@ pub(all) struct CommandResult {
   state : CommandState
   message : String
   completed_at : Timestamp
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend CommandResult with ToJson::{to_json}
+
+///|
+pub extend CommandResult with @json.FromJson::{from_json}
 
 ///|
 /// Creates a result for a terminal command state.
@@ -80,7 +104,13 @@ pub(all) struct Command {
   updated_at : Timestamp
   state : CommandState
   result : CommandResult?
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend Command with ToJson::{to_json}
+
+///|
+pub extend Command with @json.FromJson::{from_json}
 
 ///|
 /// Creates a pending command with a non-decreasing expiry deadline.
