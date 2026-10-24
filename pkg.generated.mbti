@@ -973,9 +973,11 @@ pub(all) enum TransportCapability {
   Telemetry
   Command
   Config
-} derive(Eq, @debug.Debug)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn TransportCapability::equal(Self, Self) -> Bool
+pub fn TransportCapability::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn TransportCapability::not_equal(Self, Self) -> Bool
+pub fn TransportCapability::to_json(Self) -> Json
 pub fn TransportCapability::to_repr(Self) -> @debug.Repr
 
 pub(all) enum TransportHandshakeResult {
@@ -1028,8 +1030,10 @@ pub(all) enum WireAckStatus {
   Accepted
   Duplicate
   Rejected(String)
-} derive(ToJson, @json.FromJson)
+} derive(Eq, ToJson, @json.FromJson)
+pub fn WireAckStatus::equal(Self, Self) -> Bool
 pub fn WireAckStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn WireAckStatus::not_equal(Self, Self) -> Bool
 pub fn WireAckStatus::to_json(Self) -> Json
 
 pub(all) struct WireFrame {
@@ -1040,6 +1044,7 @@ pub fn WireFrame::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecode
 pub fn WireFrame::to_json(Self) -> Json
 
 pub(all) enum WireMessage {
+  Handshake(Array[TransportCapability])
   Enroll(String, Array[NodeCapability], Timestamp)
   Heartbeat(String, NodeHealth, Timestamp)
   ConfigUpdate(String, ConfigSnapshot)

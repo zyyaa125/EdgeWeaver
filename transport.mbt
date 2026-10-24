@@ -32,7 +32,13 @@ pub(all) enum TransportCapability {
   Telemetry
   Command
   Config
-} derive(Debug, Eq)
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend TransportCapability with ToJson::{to_json}
+
+///|
+pub extend TransportCapability with @json.FromJson::{from_json}
 
 ///|
 /// Exponential reconnect limits measured in seconds.

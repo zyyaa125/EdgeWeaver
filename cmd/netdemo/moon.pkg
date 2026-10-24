@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "zyyaa125/edgeweaver",
+  "zyyaa125/edgeweaver/disk",
+  "zyyaa125/edgeweaver/network",
+}
+
+pkgtype(kind: "executable")

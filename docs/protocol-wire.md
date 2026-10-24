@@ -4,6 +4,7 @@
 
 | 消息种类 | 位置参数 | 语义 |
 | --- | --- | --- |
+| `Handshake` | 传输能力数组 | 在业务消息前协商共享能力。 |
 | `Enroll` | 节点 ID、能力数组、时间戳 | 节点登记。 |
 | `Heartbeat` | 节点 ID、健康状态、时间戳 | 心跳/健康观测。 |
 | `ConfigUpdate` | 节点 ID、配置快照 | 版本化配置。 |
@@ -12,6 +13,6 @@
 | `Receipt` | 消息 ID、`Accepted`/`Duplicate`/`Rejected(reason)` | 只有前两种且 ID 与请求相符才允许本地确认。 |
 | `ErrorResponse` | 错误代码、原因 | 协议级拒绝。 |
 
-缺字段、未知字段、未知消息种类、无效值或非法 JSON 返回 `InvalidData`；正文超限返回 `TooLarge`；非 1.0 版本返回 `UnsupportedVersion`。测试覆盖七种消息往返、未知字段与类别、缺字段、无效值、超限和版本拒绝。将来扩展格式须明确升级版本和兼容策略。
+缺字段、未知字段、未知消息种类、无效值或非法 JSON 返回 `InvalidData`；正文超限返回 `TooLarge`；非 1.0 版本返回 `UnsupportedVersion`。测试覆盖八种消息往返、未知字段与类别、缺字段、无效值、超限和版本拒绝。将来扩展格式须明确升级版本和兼容策略。
 
-`TransportAdapter` 将连接、关闭、能力交换、有界批次发送与结果分别注入 `TransportManager`。连接失败安排原有退避；握手不兼容时关闭连接并停止同步。对每一事件，管理器要求恰好一个匹配消息 ID 的收据；超时、断连、空/多余/错位响应均保留待处理事件。`replay_with` 当前每次调用适配器发送一个事件的批次，批量窗口仍由 `SyncConfig` 控制。I/O 超时后调用方需要 `close_with` 标记链路断开。M2 的测试适配器只模拟 I/O；真实 socket 和服务端持久确认属于 M3。
+`TransportAdapter` 将连接、关闭、能力交换、有界批次发送与结果分别注入 `TransportManager`。连接失败安排原有退避；握手不兼容时关闭连接并停止同步。对每一事件，管理器要求恰好一个匹配消息 ID 的收据；超时、断连、空/多余/错位响应均保留待处理事件。`replay_with` 当前每次调用适配器发送一个事件的批次，批量窗口仍由 `SyncConfig` 控制。I/O 超时后调用方需要 `close_with` 标记链路断开。M3 的 `cmd/netdemo` 是独立的 loopback TCP 闭环；适配器与 CLI 的长期整合仍需继续。

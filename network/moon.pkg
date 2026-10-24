@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
+  "zyyaa125/edgeweaver",
+}
+
+options(
+  "native-stub": [ "socket.c" ],
+  targets: { "socket.mbt": [ "native" ] },
+)

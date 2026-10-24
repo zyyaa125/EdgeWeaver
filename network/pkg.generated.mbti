@@ -1,0 +1,46 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "zyyaa125/edgeweaver/network"
+
+import {
+  "moonbitlang/core/debug",
+  "zyyaa125/edgeweaver",
+}
+
+// Values
+pub fn connect(Int, timeout_ms~ : Int) -> Socket raise NetworkError
+
+pub fn listen(Int) -> Listener raise NetworkError
+
+// Errors
+pub(all) suberror NetworkError {
+  InvalidPort
+  InvalidTimeout
+  ListenFailed
+  AcceptFailed
+  ConnectFailed
+  ReadFailed
+  WriteFailed
+  InvalidFrame
+} derive(Eq, @debug.Debug)
+pub fn NetworkError::equal(Self, Self) -> Bool
+pub fn NetworkError::not_equal(Self, Self) -> Bool
+pub fn NetworkError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct Listener {
+  mut handle : Int64
+}
+pub fn Listener::accept(Self, timeout_ms~ : Int) -> Socket raise NetworkError
+pub fn Listener::close(Self) -> Unit
+pub fn Listener::port(Self) -> Int
+
+pub struct Socket {
+  mut handle : Int64
+}
+pub fn Socket::close(Self) -> Unit
+pub fn Socket::receive(Self) -> @edgeweaver.WireFrame raise NetworkError
+pub fn Socket::send(Self, @edgeweaver.WireFrame) -> Unit raise NetworkError
+
+// Type aliases
+
+// Traits

@@ -1,5 +1,5 @@
 ///|
-test "wire format round trips all seven message categories" {
+test "wire format round trips all eight message categories" {
   let at = try! @edgeweaver.Timestamp::new(unix_seconds=40)
   let node_id = try! @edgeweaver.NodeId::new(value="wire-node")
   let event = try! @edgeweaver.MessageEnvelope::new(
@@ -16,6 +16,9 @@ test "wire format round trips all seven message categories" {
     created_at=at,
   )
   let messages : Array[@edgeweaver.WireMessage] = [
+    @edgeweaver.WireMessage::Handshake([
+      @edgeweaver.TransportCapability::EventReplay,
+    ]),
     @edgeweaver.WireMessage::Enroll(
       "wire-node",
       [@edgeweaver.NodeCapability::Telemetry],

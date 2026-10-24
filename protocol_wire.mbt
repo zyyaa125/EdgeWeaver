@@ -19,7 +19,7 @@ pub(all) enum WireAckStatus {
   Accepted
   Duplicate
   Rejected(String)
-} derive(ToJson, FromJson)
+} derive(Eq, ToJson, FromJson)
 
 ///|
 pub extend WireAckStatus with ToJson::{to_json}
@@ -28,9 +28,13 @@ pub extend WireAckStatus with ToJson::{to_json}
 pub extend WireAckStatus with @json.FromJson::{from_json}
 
 ///|
+pub extend WireAckStatus with Eq::{not_equal, equal}
+
+///|
 /// Version 1 request/response kinds. Strings are values, never shell text.
 /// Semantic validation follows JSON decoding before dispatch.
 pub(all) enum WireMessage {
+  Handshake(Array[TransportCapability])
   Enroll(String, Array[NodeCapability], Timestamp)
   Heartbeat(String, NodeHealth, Timestamp)
   ConfigUpdate(String, ConfigSnapshot)
@@ -96,6 +100,10 @@ fn validate_wire(frame : WireFrame) -> Unit raise WireError {
     raise WireError::UnsupportedVersion
   }
   match frame.message {
+    WireMessage::Handshake(capabilities) =>
+      if capabilities.length() == 0 {
+        raise WireError::InvalidData
+      }
     WireMessage::Enroll(id, _, at) =>
       if id == "" || at.unix_seconds < 0 {
         raise WireError::InvalidData
