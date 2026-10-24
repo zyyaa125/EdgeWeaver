@@ -117,6 +117,8 @@ pub(all) struct TransportManager {
   mut state : ConnectionState
   mut attempts : Int32
   mut next_retry_at : Timestamp?
+  mut last_connect_attempt_at : Timestamp?
+  mut last_connected_at : Timestamp?
   mut negotiated : NegotiatedLink?
   mut cursor : SyncCursor
 } derive(Debug, Eq)
@@ -138,6 +140,8 @@ pub fn TransportManager::new(
     state: ConnectionState::Disconnected,
     attempts: 0,
     next_retry_at: None,
+    last_connect_attempt_at: None,
+    last_connected_at: None,
     negotiated: None,
     cursor: SyncCursor::start(),
   }
@@ -159,6 +163,14 @@ pub fn TransportManager::negotiated(self : TransportManager) -> NegotiatedLink? 
 /// Returns the next retry time, if the link is backing off.
 pub fn TransportManager::next_retry_at(self : TransportManager) -> Timestamp? {
   self.next_retry_at
+}
+
+///|
+/// Returns the timestamp of the last successful handshake, if any.
+pub fn TransportManager::last_connected_at(
+  self : TransportManager,
+) -> Timestamp? {
+  self.last_connected_at
 }
 
 ///|
@@ -194,6 +206,7 @@ pub fn TransportManager::begin_connect(
     }
     state => raise TransportError::InvalidState(state)
   }
+  self.last_connect_attempt_at = Some(at)
 }
 
 ///|
@@ -217,6 +230,7 @@ pub fn TransportManager::handshake(
   self.state = ConnectionState::Connected
   self.attempts = 0
   self.next_retry_at = None
+  self.last_connected_at = self.last_connect_attempt_at
   link
 }
 

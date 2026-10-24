@@ -158,6 +158,8 @@ test "diagnostic snapshot exposes queue connection policy and execution status" 
   assert_eq(snapshot.sync_failures, 1)
   assert_eq(snapshot.last_sync_error, Some("replay deferred"))
   assert_eq(snapshot.connection_state, @edgeweaver.ConnectionState::Connected)
+  assert_eq(snapshot.last_connected_at, Some(try! observability_time(7)))
+  assert_eq(snapshot.last_error_category, Some("sync"))
   assert_eq(snapshot.negotiated_capabilities, [
     @edgeweaver.TransportCapability::EventReplay,
     @edgeweaver.TransportCapability::Heartbeat,
@@ -170,7 +172,50 @@ test "diagnostic snapshot exposes queue connection policy and execution status" 
     ),
   )
   assert_eq(snapshot.execution_records, 0)
+  assert_eq(snapshot.uncertain_executions, 0)
   assert_eq(snapshot.events.length(), 2)
+}
+
+///|
+test "diagnostic JSON includes stable status fields and excludes raw content" {
+  let collector = try! @edgeweaver.DiagnosticsCollector::new(max_logs=2)
+  collector.record_event(
+    at=try! observability_time(8),
+    level=@edgeweaver.LogLevel::Warn,
+    component="runner",
+    message="token=TOPSECRET",
+  )
+  collector.record_policy_decision(
+    at=try! observability_time(9),
+    decision=@edgeweaver.PolicyDecision::Execute(
+      "private-rule",
+      @edgeweaver.CommandAction::Execute("secret-action"),
+    ),
+  )
+  let node = observability_node()
+  let store = observability_store()
+  let transport = observability_transport()
+  let allowlist = try! @edgeweaver.CommandAllowlist::new(actions=[])
+  let executor = @edgeweaver.EdgeExecutor::new(node~, allowlist~)
+  let snapshot = try! collector.snapshot(
+    node~,
+    store~,
+    transport~,
+    executor~,
+    at=try! observability_time(10),
+  )
+  let encoded = snapshot.to_json(role=@edgeweaver.RunProfileKind::Node)
+  let _ = try! @json.parse(encoded)
+  assert_true(encoded.contains("\"role\":\"node\"".view()))
+  assert_true(encoded.contains("\"last_connected_at\":7".view()))
+  assert_true(encoded.contains("\"next_retry_at\":null".view()))
+  assert_true(encoded.contains("\"last_error_category\":null".view()))
+  assert_true(encoded.contains("\"pending_events\":1".view()))
+  assert_true(encoded.contains("\"dropped_events\":1".view()))
+  assert_true(encoded.contains("\"policy_state\":\"execute\"".view()))
+  assert_true(!encoded.contains("TOPSECRET".view()))
+  assert_true(!encoded.contains("secret-action".view()))
+  assert_true(!encoded.contains("private-rule".view()))
 }
 
 ///|

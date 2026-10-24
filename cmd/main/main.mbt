@@ -81,4 +81,15 @@ fn main {
   println("enrolled node: " + online.id.value)
   println("acknowledged events: " + report.acknowledged.to_string())
   println("pending events: " + store.pending_count().to_string())
+  let collector = try! @edgeweaver.DiagnosticsCollector::new(max_logs=8)
+  let allowlist = try! @edgeweaver.CommandAllowlist::new(actions=[])
+  let executor = @edgeweaver.EdgeExecutor::new(node=online, allowlist~)
+  let diagnostics = try! collector.snapshot(
+    node=online,
+    store~,
+    transport~,
+    executor~,
+    at=try! @edgeweaver.Timestamp::new(unix_seconds=104),
+  )
+  println(diagnostics.to_json(role=@edgeweaver.RunProfileKind::Node))
 }

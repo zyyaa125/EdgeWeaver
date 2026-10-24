@@ -1,6 +1,6 @@
 # EdgeWeaver 本地验收记录（2026-10-24）
 
-环境：Windows 本地 native；`moon 0.1.20261012`、`moonc v0.10.15`。`moon fmt --check`、`moon check --deny-warn`、`moon build` 已通过，`moon test --deny-warn` 为 **77/77 通过**。以下只报告本机真实执行；GitHub Actions 修改后的 Linux 运行结果尚待远端 CI 确认。
+环境：Windows 本地 native；`moon 0.1.20261012`、`moonc v0.10.15`。`moon fmt --check`、`moon check --deny-warn`、`moon build` 已通过；增加诊断 JSON 测试后 `moon test --deny-warn` 为 **78/78 通过**。以下只报告本机真实执行；GitHub Actions 修改后的 Linux 运行结果尚待远端 CI 确认。
 
 | 场景 | 结果 | 证据与限制 |
 | --- | --- | --- |

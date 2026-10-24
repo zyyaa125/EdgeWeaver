@@ -505,6 +505,9 @@ pub fn DiagnosticsCollector::record_sync_failure(Self, at~ : Timestamp, message~
 pub fn DiagnosticsCollector::snapshot(Self, node~ : Node, store~ : LocalStore, transport~ : TransportManager, executor~ : EdgeExecutor, at~ : Timestamp) -> LocalDiagnostics raise DiagnosticsError
 pub fn DiagnosticsCollector::to_repr(Self) -> @debug.Repr
 
+type DiagnosticsJson derive(ToJson)
+pub fn DiagnosticsJson::to_json(Self) -> Json
+
 pub(all) struct EdgeExecutor {
   node : Node
   allowlist : CommandAllowlist
@@ -642,14 +645,20 @@ pub(all) struct LocalDiagnostics {
   last_sync_error : String?
   sync_cursor : SyncCursor
   connection_state : ConnectionState
+  last_connected_at : Timestamp?
+  last_error_category : String?
   negotiated_capabilities : Array[TransportCapability]
   next_retry_at : Timestamp?
   policy_decision : PolicyDecision
   execution_records : Int
+  uncertain_executions : Int
+  failed_executions : Int
+  succeeded_executions : Int
   events : Array[DiagnosticEvent]
 } derive(Eq, @debug.Debug)
 pub fn LocalDiagnostics::equal(Self, Self) -> Bool
 pub fn LocalDiagnostics::not_equal(Self, Self) -> Bool
+pub fn LocalDiagnostics::to_json(Self, role~ : RunProfileKind) -> String
 pub fn LocalDiagnostics::to_repr(Self) -> @debug.Repr
 
 pub(all) struct LocalStateSnapshot {
@@ -1034,6 +1043,8 @@ pub(all) struct TransportManager {
   mut state : ConnectionState
   mut attempts : Int
   mut next_retry_at : Timestamp?
+  mut last_connect_attempt_at : Timestamp?
+  mut last_connected_at : Timestamp?
   mut negotiated : NegotiatedLink?
   mut cursor : SyncCursor
 } derive(Eq, @debug.Debug)
@@ -1044,6 +1055,7 @@ pub fn TransportManager::disconnect(Self, at~ : Timestamp) -> Unit raise Transpo
 pub fn TransportManager::equal(Self, Self) -> Bool
 pub fn TransportManager::handshake(Self, peer~ : CapabilityAdvertisement) -> NegotiatedLink raise TransportError
 pub fn TransportManager::has_capability(Self, capability~ : TransportCapability) -> Bool
+pub fn TransportManager::last_connected_at(Self) -> Timestamp?
 pub fn TransportManager::negotiated(Self) -> NegotiatedLink?
 pub fn TransportManager::new(protocol~ : ProtocolVersion, capabilities~ : Array[TransportCapability], backoff~ : BackoffPolicy) -> Self raise TransportError
 pub fn TransportManager::next_retry_at(Self) -> Timestamp?

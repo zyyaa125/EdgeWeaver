@@ -134,6 +134,18 @@ pub fn DiagnosticsCollector::snapshot(
     Some(link) => copy_transport_capabilities(link.capabilities)
     None => []
   }
+  let mut uncertain_executions = 0
+  let mut failed_executions = 0
+  let mut succeeded_executions = 0
+  for record in executor.records() {
+    match record.status {
+      ExecutionStatus::InProgress =>
+        uncertain_executions = uncertain_executions + 1
+      ExecutionStatus::Failed => failed_executions = failed_executions + 1
+      ExecutionStatus::Succeeded =>
+        succeeded_executions = succeeded_executions + 1
+    }
+  }
   {
     node_id: node.id,
     lifecycle: node.lifecycle,
@@ -145,10 +157,18 @@ pub fn DiagnosticsCollector::snapshot(
     last_sync_error: self.last_sync_error,
     sync_cursor: transport.sync_cursor(),
     connection_state: transport.state(),
+    last_connected_at: transport.last_connected_at(),
+    last_error_category: match self.last_sync_error {
+      Some(_) => Some("sync")
+      None => None
+    },
     negotiated_capabilities,
     next_retry_at: transport.next_retry_at(),
     policy_decision: self.last_policy_decision,
     execution_records: executor.records().length(),
+    uncertain_executions,
+    failed_executions,
+    succeeded_executions,
     events: copy_diagnostic_events(self.logs),
   }
 }
@@ -166,10 +186,15 @@ pub(all) struct LocalDiagnostics {
   last_sync_error : String?
   sync_cursor : SyncCursor
   connection_state : ConnectionState
+  last_connected_at : Timestamp?
+  last_error_category : String?
   negotiated_capabilities : Array[TransportCapability]
   next_retry_at : Timestamp?
   policy_decision : PolicyDecision
   execution_records : Int32
+  uncertain_executions : Int32
+  failed_executions : Int32
+  succeeded_executions : Int32
   events : Array[DiagnosticEvent]
 } derive(Debug, Eq)
 
