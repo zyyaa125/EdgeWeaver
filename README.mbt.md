@@ -57,7 +57,7 @@ moon test --deny-warn
 moon run cmd/main
 ```
 
-当前实测 74 项测试通过；`moon run cmd/main` 应输出 `acknowledged events: 1` 和 `pending events: 0`，验证模拟的节点登记、心跳与事件回放路径。本机 TCP 帧交换由 `network/socket_wbtest.mbt` 覆盖。
+当前实测 75 项测试通过；`moon run cmd/main` 应输出 `acknowledged events: 1` 和 `pending events: 0`，验证模拟的节点登记、心跳与事件回放路径。本机 TCP 帧交换由 `network/socket_wbtest.mbt` 覆盖。
 
 磁盘重启验收在仓库根目录分别运行两个命令（第二个命令启动新进程）：
 

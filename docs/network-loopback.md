@@ -19,4 +19,4 @@ moon run cmd/netdemo -- replay 39471 /tmp/edgeweaver-checkpoint.json 3000
 
 本闭环仅绑定本机 loopback，不提供 TLS、凭证、远程主机接入、多写者仲裁或生产级远端服务。收据保存的是消息 ID；同一 ID 的不同负载冲突、磁盘掉电、服务并发与跨节点持久注册尚未验收。运行前请选择独占端口和专用数据文件，避免复用其他实例的收据。
 
-多事件中断验收：先在没有控制端的情况下运行 `moon run cmd/netdemo -- queue /tmp/edgeweaver-queue.json 3`，应显示 `queued pending=3`。启动 `serve`，会话数设为 `1`，然后运行 `drain <port> /tmp/edgeweaver-queue.json 3000`；首条事件确认后控制端退出，第二次连接失败，checkpoint 仍有 2 条待处理。再次用相同收据路径启动 `serve`（会话数 `2`），重新运行 `drain`，应显示 `drained=2; pending=0`，收据 ID 按 `network-event-1,2,3` 排列。`queue` 每添加一条事件即保存 checkpoint。`drain` 每得到匹配的 `Accepted`/`Duplicate` 才确认并保存，连接失败时须由操作方重新启动；自动退避调度尚未接入此 CLI。
+多事件中断验收：先在没有控制端的情况下运行 `moon run cmd/netdemo -- queue /tmp/edgeweaver-queue.json 3`，应显示 `queued pending=3`。启动 `serve`，会话数设为 `1`，然后运行 `drain <port> /tmp/edgeweaver-queue.json 3000`；首条事件确认后控制端退出，后续连接经 1 秒、2 秒有界退避仍失败时返回 `ReconnectExhausted`，checkpoint 保留 2 条。再次用相同收据路径启动 `serve`（会话数 `2`），重新运行 `drain`，应显示 `drained=2; pending=0`，收据 ID 按 `network-event-1,2,3` 排列。`queue` 每添加一条事件即保存 checkpoint。`drain` 每得到匹配的 `Accepted`/`Duplicate` 才确认并保存；重试预算耗尽后由操作方处理，不能无限重试。

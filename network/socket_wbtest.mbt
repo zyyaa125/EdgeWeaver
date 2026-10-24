@@ -39,3 +39,15 @@ test "native loopback exchanges framed messages and times out" {
   server.close()
   listener.close()
 }
+
+///|
+test "native pause rejects unbounded reconnect waits" {
+  for milliseconds in [-1, 10001] {
+    try pause(milliseconds) catch {
+      NetworkError::InvalidTimeout => ()
+      _ => fail("wrong delay validation error")
+    } noraise {
+      _ => fail("unbounded pause accepted")
+    }
+  }
+}

@@ -11,6 +11,8 @@ pub fn connect(Int, timeout_ms~ : Int) -> Socket raise NetworkError
 
 pub fn listen(Int) -> Listener raise NetworkError
 
+pub fn pause(Int) -> Unit raise NetworkError
+
 // Errors
 pub(all) suberror NetworkError {
   InvalidPort

@@ -4,6 +4,7 @@ suberror NetworkDemoError {
   UnexpectedMessage
   UnexpectedAck
   PendingRecovery
+  ReconnectExhausted
 }
 
 ///|
@@ -306,10 +307,34 @@ fn queue_events(path : String, count : Int32) -> Unit raise {
 ///|
 fn drain_events(port : Int32, path : String, timeout_ms : Int32) -> Unit raise {
   let store = @disk.load_checkpoint(path)
+  let backoff = @edgeweaver.BackoffPolicy::new(
+    base_delay=1,
+    max_delay=4,
+    max_attempts=3,
+  )
+  let mut failures = 0
   let mut sent = 0
   while store.pending_count() > 0 {
     let entry = store.pending_events()[0]
-    let status = exchange_one(port, timeout_ms, entry.envelope)
+    let mut retryable = false
+    let status = exchange_one(port, timeout_ms, entry.envelope) catch {
+      @network.NetworkError::ConnectFailed
+      | @network.NetworkError::ReadFailed
+      | @network.NetworkError::WriteFailed => {
+        retryable = true
+        @edgeweaver.WireAckStatus::Rejected("transport unavailable")
+      }
+      error => raise error
+    }
+    if retryable {
+      failures = failures + 1
+      if failures >= backoff.max_attempts {
+        raise NetworkDemoError::ReconnectExhausted
+      }
+      @network.pause(backoff.delay_for(attempt=failures) * 1000)
+      continue
+    }
+    failures = 0
     match status {
       @edgeweaver.WireAckStatus::Accepted
       | @edgeweaver.WireAckStatus::Duplicate => ()

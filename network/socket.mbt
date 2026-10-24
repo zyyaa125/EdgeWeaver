@@ -40,6 +40,9 @@ extern "c" fn socket_connect(port : Int32, timeout_ms : Int32) -> Int64 = "edgew
 extern "c" fn socket_close(handle : Int64) -> Unit = "edgeweaver_socket_close"
 
 ///|
+extern "c" fn socket_pause(milliseconds : Int32) -> Unit = "edgeweaver_socket_pause"
+
+///|
 /// A single native TCP socket with bounded frame I/O.
 pub struct Socket {
   mut handle : Int64
@@ -140,4 +143,13 @@ pub fn Listener::close(self : Listener) -> Unit {
     socket_close(self.handle)
     self.handle = -1
   }
+}
+
+///|
+/// Waits a bounded interval between native reconnect attempts.
+pub fn pause(milliseconds : Int32) -> Unit raise NetworkError {
+  if milliseconds < 0 || milliseconds > 10000 {
+    raise NetworkError::InvalidTimeout
+  }
+  socket_pause(milliseconds)
 }

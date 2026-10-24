@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -235,4 +236,15 @@ MOONBIT_FFI_EXPORT moonbit_bytes_t edgeweaver_socket_read(int64_t raw) {
 
 MOONBIT_FFI_EXPORT void edgeweaver_socket_close(int64_t raw) {
   if (raw >= 0) ew_close(ew_socket_of(raw));
+}
+
+MOONBIT_FFI_EXPORT void edgeweaver_socket_pause(int32_t milliseconds) {
+  if (milliseconds <= 0 || milliseconds > 10000) return;
+#ifdef _WIN32
+  Sleep((DWORD)milliseconds);
+#else
+  struct timespec interval = { milliseconds / 1000,
+                               (milliseconds % 1000) * 1000000L };
+  while (nanosleep(&interval, &interval) != 0 && errno == EINTR) {}
+#endif
 }
