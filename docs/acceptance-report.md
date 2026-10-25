@@ -40,3 +40,7 @@
 新增的 `DeviceObservation` 将节点、设备、健康、指标、值、单位和时间统一为纯领域数据，并可编码成版本 1 Telemetry 信封。确定性模拟器、空字段/负时间拒绝及 JSON 回读均有测试。Linux native 的 `LinuxUptimeAdapter` 从固定 `/proc/uptime` 路径读取真实主机运行秒数；`moon run cmd/device` 在 Ubuntu WSL2 输出观测及事件 JSON，值随启动时间变化。这是主机信息适配器，**不是物理传感器驱动或整机健康诊断**；读取成功仍将健康标为 `Unknown`。
 
 Windows 与 Ubuntu native 的 `moon test --deny-warn` 均为 **82/82 通过**。纯根 package 的 `moon check . --target all --deny-warn` 通过，`moon test . --target all --deny-warn` 在 wasm、wasm-gc、JS、native 各 **71/71 通过**。整模块 `moon check --target all --deny-warn` 的首个相关错误仍是 `disk/checkpoint_wbtest.mbt` 在非 native 后端引用 native 专用解码函数；native I/O 包不宣称可跨后端运行。新增适配器只依赖 MoonBit core 与 Linux procfs，没有额外第三方库；模块增加 MIT 许可元数据，Mooncakes 发布未执行。
+
+## 2026-10-25：Mooncakes 0.1.0 发布验收
+
+Ubuntu `moon 0.1.20261023`、`moonc v0.10.17` 对发布包执行 `moon package --list`，确认含 README、MIT 许可证且排除本地 `任务说明.md`。`moon publish --frozen` 对原包及解包后的内容均完成检查，Mooncakes 返回 `200 OK`；独立临时项目执行 `moon add zyyaa125/edgeweaver@0.1.0` 成功下载。公开[模块页面](https://mooncakes.io/docs/zyyaa125/edgeweaver%400.1.0)返回 HTTP 200；对应源码已推送 GitHub 标签 [`v0.1.0`](https://github.com/zyyaa125/EdgeWeaver/tree/v0.1.0)。此验收只证明包可发布与获取，native I/O 的后端限制仍按上节说明。

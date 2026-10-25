@@ -11,6 +11,6 @@
 | M4 安全命令与策略 | 核心安全与磁盘恢复完成；真实运行器待实施 | 依赖 M1/M3；执行前/后持久状态、失败默认拒绝、预算不变量 | `edge.mbt`、`command.mbt`、`policy.mbt`、`disk/safety.mbt`、`cmd/safety/`、相关测试；跨进程未知执行结果不重试。真实动作超时/权限隔离未验收。 |
 | M5 故障验收 | 部分通过 | 依赖 M1–M4；十二类验收场景逐项报告，CI 增加跨进程磁盘恢复 | `docs/acceptance-report.md`、CI；多事件及 Linux 本机服务重启已验证；真实运行器、掉电与远端部署未通过，故 P0 未宣布完成。 |
 | M6 诊断与 Linux 部署 | 本机范围已验收；远端/生产边界保留 | JSON 诊断、Linux 本机双角色服务、配置与权限检查、systemd 启停/恢复 | `observability.mbt`、`diagnostics_json.mbt`、`cmd/netdemo/service.mbt`、`deploy/`、测试及 `docs/diagnostics-json.md`；Ubuntu WSL2 79 项测试通过，systemd 安装/启动/停止/重启、持久去重、日志和权限拒绝实测。仅 loopback 与样例节点，非远端生产服务。 |
-| M7 适配与生态 | 本阶段完成；发布单独验收 | 统一观测契约、可重复模拟器、Linux procfs 只读适配器、模块许可与包边界 | `device_observation.mbt`、`linux_device/`、`cmd/device/`、`moon.mod`、`docs/device-adapters.md`；native 82 项通过，根 package 四后端各 71 项通过。整模块全目标仍因 native I/O 包及测试失败；未宣称 wasm/JS 支持这些适配器。 |
+| M7 适配与生态 | 完成；Mooncakes 0.1.0 已发布 | 统一观测契约、可重复模拟器、Linux procfs 只读适配器、模块许可与包边界 | `device_observation.mbt`、`linux_device/`、`cmd/device/`、`moon.mod`、`docs/device-adapters.md`；native 82 项通过，根 package 四后端各 71 项通过。整模块全目标仍因 native I/O 包及测试失败；未宣称 wasm/JS 支持这些适配器。发布验收见 `docs/acceptance-report.md`。 |
 
 P0 的依赖主线为 **M0 → M1 → M2 → M3 → M4 → M5**。M4 的策略测试可复用 M1 的持久化契约，但不在早期里程碑提前扩展业务。每个增量执行与改动相符的 `moon fmt`、`moon check --deny-warn`、相关 `moon test`；公开 API 变化另查 `moon info` 与 `.mbti`。验收缺口保留为待实施，不能用模拟输出代替网络或 Linux 实测。

@@ -14,6 +14,7 @@ EdgeWeaver 是面向弱网边缘设备的 MoonBit 自治核心库与平台原型
 - **部署类别：** 首期以标准 Linux 用户态设备为目标；具体发行版、CPU 架构和硬件型号待目标设备确认后验证。裸机 MCU、Windows 服务和浏览器/Wasm 部署不在当前范围。
 - **运行角色：** `node` 用于边缘节点，`control-plane` 用于控制面；两者使用独立的数据、配置、事件日志和诊断目录。
 - **仓库远端：** [GitHub](https://github.com/zyyaa125/EdgeWeaver)。
+- **Mooncakes：** [zyyaa125/edgeweaver 0.1.0](https://mooncakes.io/docs/zyyaa125/edgeweaver%400.1.0)；作为库依赖可运行 `moon add zyyaa125/edgeweaver@0.1.0`。
 - **许可证：** MIT，详见 [`LICENSE`](LICENSE)。
 
 ## 部署运行档案
