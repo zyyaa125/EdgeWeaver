@@ -37,6 +37,12 @@ test "native loopback exchanges framed messages and times out" {
   }
   client.close()
   server.close()
+  try listener.accept(timeout_ms=20) catch {
+    NetworkError::AcceptTimeout => ()
+    _ => fail("wrong idle accept result")
+  } noraise {
+    _ => fail("idle accept succeeded")
+  }
   listener.close()
 }
 

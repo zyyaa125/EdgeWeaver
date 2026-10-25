@@ -25,4 +25,12 @@
 
 目标边界检查：`moon check --target all --deny-warn` 未通过，首个相关错误来自 `disk/checkpoint_wbtest.mbt` 在非 native 目标中引用了 native 专用解码函数；尝试仅筛选源码目标后，非 native 空 package 又触发未使用导入诊断。仓库首选目标是 native，纯领域逻辑的跨后端可用性仍待单独拆包验证；本报告不宣称全目标通过。
 
-**尚未通过的总体验收项：** 长期持续采集、实际命令运行器的超时与权限隔离，远程 TLS 与凭证，Linux 干净环境安装/重启恢复，真实硬件适配，掉电和多写者一致性。当前仍是本机单写者原型，不能作为生产部署或完整 P0/P1 完成证明。没有吞吐量或延迟性能数据。
+**尚未通过的总体验收项：** 长期持续采集、实际命令运行器的超时与权限隔离，远程 TLS 与凭证，真实硬件适配，掉电和多写者一致性。当前仍是本机单写者原型，不能作为生产部署或完整 P0/P1 完成证明。没有吞吐量或延迟性能数据。下列新增记录补足了 Linux 本机服务验收，不覆盖这些限制。
+
+## 2026-10-25：Ubuntu WSL2 本机服务补充验收
+
+环境：Ubuntu 24.04 WSL2、用户目录隔离安装的 `moon 0.1.20261023`/`moonc v0.10.17`、Ubuntu `build-essential`。原生 `moon check --deny-warn`、`moon build`、`moon test --deny-warn` 通过，**79/79 测试通过**。两个独立 Linux 进程的 `cmd/recovery write`/`replay` 得到 `deduplicated=1; pending=0`；`cmd/safety write`/`resume` 得到 `runner_calls=1` 后 `runner_calls=0`。
+
+按 [`../deploy/linux-service.md`](../deploy/linux-service.md) 将同一 Linux ELF 安装为节点与控制端两个角色，配置、systemd 单元和 `edgeweaver` 非特权账户均在 WSL 中实装。`systemd-analyze verify` 无诊断；服务可启动、停止、重启，角色数据目录及 `events` 子目录均为 `edgeweaver:edgeweaver 0700`，journald 即时记录启动和 `drained=1; pending=0`。以服务账户入队 1 条样例事件后自动回放；再停止节点，发送第 2 条事件使控制端接收但本地仍待确认，重启控制端和节点后本地队列清空，格式 2 收据仅含 2 条消息。模式 `0666` 的配置文件被拒绝，启动退出码为 2；把节点 `events` 目录临时改为 `0755` 也被拒绝，之后已恢复 `0700`。测试结束后服务已停止，安装文件和演示状态仍保留在 WSL 供复核。
+
+这一验收只覆盖同机 loopback、样例节点和 systemd 用户态进程。没有验证远端网络、TLS、真实设备采集、实际命令运行器、掉电持久性或独立物理 Linux 主机。

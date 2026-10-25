@@ -1,0 +1,25 @@
+[Unit]
+Description=EdgeWeaver local node replay service
+After=network.target edgeweaver-control.service
+Wants=edgeweaver-control.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=edgeweaver
+Group=edgeweaver
+StateDirectory=edgeweaver/node edgeweaver/node/events
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/usr/local/bin/edgeweaver-node service-node /etc/edgeweaver/node.json
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

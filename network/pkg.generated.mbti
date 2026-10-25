@@ -19,6 +19,7 @@ pub(all) suberror NetworkError {
   InvalidTimeout
   ListenFailed
   AcceptFailed
+  AcceptTimeout
   ConnectFailed
   ReadFailed
   WriteFailed

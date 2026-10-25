@@ -5,6 +5,7 @@ pub(all) suberror NetworkError {
   InvalidTimeout
   ListenFailed
   AcceptFailed
+  AcceptTimeout
   ConnectFailed
   ReadFailed
   WriteFailed
@@ -81,6 +82,9 @@ pub fn Listener::accept(
     raise NetworkError::InvalidTimeout
   }
   let handle = socket_accept(self.handle, timeout_ms)
+  if handle == -2 {
+    raise NetworkError::AcceptTimeout
+  }
   if handle < 0 {
     raise NetworkError::AcceptFailed
   }

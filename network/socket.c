@@ -104,7 +104,13 @@ MOONBIT_FFI_EXPORT int64_t edgeweaver_socket_accept(int64_t raw,
                                                      int32_t timeout_ms) {
   if (raw < 0 || timeout_ms <= 0) return -1;
   ew_socket listener = ew_socket_of(raw);
-  if (!ew_wait(listener, timeout_ms, 0)) return -1;
+  fd_set set;
+  FD_ZERO(&set);
+  FD_SET(listener, &set);
+  struct timeval timeout = { timeout_ms / 1000, (timeout_ms % 1000) * 1000 };
+  int ready = select((int)(listener + 1), &set, NULL, NULL, &timeout);
+  if (ready == 0) return -2;
+  if (ready < 0) return -1;
   ew_socket client = accept(listener, NULL, NULL);
   if (client == EW_INVALID) return -1;
   if (!ew_set_timeout(client, timeout_ms)) {

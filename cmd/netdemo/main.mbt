@@ -10,7 +10,17 @@ suberror NetworkDemoError {
 ///|
 fn main raise {
   let args = @env.args()
-  if args.length() == 6 && args[1] == "serve" {
+  if args.length() == 3 && args[1] == "service-control" {
+    service_unbuffer_stdout()
+    run_control_service(args[2]) catch {
+      error => report_service_error(error)
+    }
+  } else if args.length() == 3 && args[1] == "service-node" {
+    service_unbuffer_stdout()
+    run_node_service(args[2]) catch {
+      error => report_service_error(error)
+    }
+  } else if args.length() == 6 && args[1] == "serve" {
     let port = @string.parse_int(args[2].view())
     let sessions = @string.parse_int(args[4].view())
     let timeout_ms = @string.parse_int(args[5].view())
@@ -38,7 +48,7 @@ fn main raise {
     }
   } else {
     println(
-      "usage: serve <port> <receipt-path> <sessions> <timeout-ms> | queue <checkpoint-path> <count> | send|replay|drain <port> <checkpoint-path> <timeout-ms>",
+      "usage: service-control|service-node <config-json> | serve <port> <receipt-path> <sessions> <timeout-ms> | queue <checkpoint-path> <count> | send|replay|drain <port> <checkpoint-path> <timeout-ms>",
     )
     raise NetworkDemoError::InvalidArguments
   }

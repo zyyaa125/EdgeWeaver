@@ -1,9 +1,16 @@
 import {
   "moonbitlang/core/env",
   "moonbitlang/core/string",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
   "zyyaa125/edgeweaver",
   "zyyaa125/edgeweaver/disk",
   "zyyaa125/edgeweaver/network",
 }
 
 pkgtype(kind: "executable")
+
+options(
+  "native-stub": [ "service_io.c" ],
+  targets: { "service.mbt": [ "native" ] },
+)

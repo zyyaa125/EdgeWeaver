@@ -1,6 +1,6 @@
 # EdgeWeaver 实施进度
 
-路线来源：仓库根目录 `任务说明.md`。每个里程碑单独提交，先完成 P0 验收，再进入 P1。状态以本文件和可复现命令为准。
+路线来源：仓库根目录 `任务说明.md`。每个里程碑单独提交；M6 的本机部署验收已独立完成，P0 未通过的项目仍保留为缺口。状态以本文件和可复现命令为准。
 
 | 里程碑 | 状态 | 依赖与交付范围 | 文件、测试与验收 |
 | --- | --- | --- | --- |
@@ -9,8 +9,8 @@
 | M2 传输与 Schema | 已完成 | 依赖 M1；可注入连接/关闭/握手/发送、七类版本化 wire 消息 | `transport_adapter.mbt`、`protocol_wire.mbt`、相关测试、`docs/protocol-wire.md`；模拟超时/错位/重复响应及版本拒绝。真实网络属 M3。 |
 | M3 本地网络 | loopback 闭环完成；安全/服务限制保留 | 依赖 M2；节点与控制面两个进程、控制端磁盘收据后确认 | `network/`、`cmd/netdemo/`、socket 测试及 `docs/network-loopback.md`；实测断连后首次确认、节点/控制端重启后去重。仅本机单写者，远程 TLS 服务未交付。 |
 | M4 安全命令与策略 | 核心安全与磁盘恢复完成；真实运行器待实施 | 依赖 M1/M3；执行前/后持久状态、失败默认拒绝、预算不变量 | `edge.mbt`、`command.mbt`、`policy.mbt`、`disk/safety.mbt`、`cmd/safety/`、相关测试；跨进程未知执行结果不重试。真实动作超时/权限隔离未验收。 |
-| M5 故障验收 | 部分通过 | 依赖 M1–M4；十二类验收场景逐项报告，CI 增加跨进程磁盘恢复 | `docs/acceptance-report.md`、CI；多事件/真实运行器/Linux 清洁环境仍未通过，故 P0 未宣布完成。 |
-| M6 诊断与 Linux 部署 | 诊断 JSON 已实现；Linux 服务待实施 | P0 的真实运行器和完整验收尚有缺口；先交付独立可测的本地诊断投影 | `observability.mbt`、`diagnostics_json.mbt`、`transport.mbt`、`cmd/main/`、测试及 `docs/diagnostics-json.md`；78 项测试通过。未交付可安装的 Linux 双角色服务，WSL 无 Linux MoonBit/C 工具链，官方安装源连接超时。 |
+| M5 故障验收 | 部分通过 | 依赖 M1–M4；十二类验收场景逐项报告，CI 增加跨进程磁盘恢复 | `docs/acceptance-report.md`、CI；多事件及 Linux 本机服务重启已验证；真实运行器、掉电与远端部署未通过，故 P0 未宣布完成。 |
+| M6 诊断与 Linux 部署 | 本机范围已验收；远端/生产边界保留 | JSON 诊断、Linux 本机双角色服务、配置与权限检查、systemd 启停/恢复 | `observability.mbt`、`diagnostics_json.mbt`、`cmd/netdemo/service.mbt`、`deploy/`、测试及 `docs/diagnostics-json.md`；Ubuntu WSL2 79 项测试通过，systemd 安装/启动/停止/重启、持久去重、日志和权限拒绝实测。仅 loopback 与样例节点，非远端生产服务。 |
 | M7 适配与生态 | 待实施（P1） | 依赖 M6；设备契约、native 边界、发布元数据 | `adapters.mbt`、`moon.mod`、README、测试；`moon check --target all` 因 native 包/测试边界未通过，需拆分验证纯领域代码，不为凑全目标通过编造模拟实现。 |
 
 P0 的依赖主线为 **M0 → M1 → M2 → M3 → M4 → M5**。M4 的策略测试可复用 M1 的持久化契约，但不在早期里程碑提前扩展业务。每个增量执行与改动相符的 `moon fmt`、`moon check --deny-warn`、相关 `moon test`；公开 API 变化另查 `moon info` 与 `.mbti`。验收缺口保留为待实施，不能用模拟输出代替网络或 Linux 实测。

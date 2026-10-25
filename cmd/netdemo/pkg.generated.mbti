@@ -1,12 +1,21 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "zyyaa125/edgeweaver/cmd/netdemo"
 
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
 // Values
 
 // Errors
 type NetworkDemoError
 
+type ServiceError derive(@debug.Debug)
+
 // Types and methods
+type ServiceConfig derive(@json.FromJson)
+pub fn ServiceConfig::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
 // Type aliases
 

@@ -34,6 +34,6 @@
 
 仓库根目录提供无需真实硬件的最小闭环示例。在项目根目录运行 `moon run cmd/main`，可验证节点登记、心跳、事件入队、能力握手和回放；输出中的 `pending events: 0` 表示本次演示队列已清空。
 
-本阶段不启动 systemd/Kubernetes 服务，也不创建目录或读取 TOML 文件；它只提供可复用的运行档案和启动参数契约。
+Linux 本机双进程服务的 JSON 配置、systemd 单元、安装、日志和恢复步骤见 [`linux-service.md`](linux-service.md)。本页的 TOML 文件仍是原有 `RunProfile` 样例；实际服务入口读取 `node-service.json` 与 `control-service.json`，不读取 TOML。该服务仍只支持本机 loopback，不提供 Kubernetes 或远端 TLS 部署。
 
 弱网期间的队列、重连、事件回放和恢复流程见 [`../docs/weak-network-operations.md`](../docs/weak-network-operations.md)。

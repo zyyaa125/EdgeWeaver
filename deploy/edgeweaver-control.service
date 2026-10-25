@@ -1,0 +1,24 @@
+[Unit]
+Description=EdgeWeaver local control service
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=edgeweaver
+Group=edgeweaver
+StateDirectory=edgeweaver/control edgeweaver/control/events
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/usr/local/bin/edgeweaver-control service-control /etc/edgeweaver/control.json
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
