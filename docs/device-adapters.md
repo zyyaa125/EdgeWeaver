@@ -21,4 +21,4 @@ import {
 
 模拟器的固定读数、观测序列化和错误拒绝由 `device_observation_test.mbt` 测试；Linux package 的测试在 Ubuntu 实际读取 procfs，在 Windows 验证明确拒绝。
 
-包边界：仓库根 package 是纯领域逻辑，可单独运行 `moon check . --target all --deny-warn` 与 `moon test . --target all --deny-warn`。`disk/`、`network/`、`linux_device/` 及相关 CLI 包含 native 文件/Socket/进程接口；整模块 `--target all` 当前首先在 `disk/checkpoint_wbtest.mbt` 的非 native 路径失败，不能将 native I/O 宣称为 wasm 或 JS 可用。首选后端仍是 native。没有新增第三方库；C 代码只读取 Linux 内核提供的 procfs。此包未发布到 Mooncakes，发布前仍须核对仓库版本、许可和目标后端。
+包边界：仓库根 package 是纯领域逻辑，可单独运行 `moon check . --target all --deny-warn` 与 `moon test . --target all --deny-warn`。`disk/`、`network/`、`linux_device/` 及相关 CLI 包含 native 文件/Socket/进程接口；整模块 `--target all` 当前首先在 `disk/checkpoint_wbtest.mbt` 的非 native 路径失败，不能将 native I/O 宣称为 wasm 或 JS 可用。首选后端仍是 native。没有新增第三方库；C 代码只读取 Linux 内核提供的 procfs。Mooncakes 的实际发布版本与可用状态以 registry 页面为准。
