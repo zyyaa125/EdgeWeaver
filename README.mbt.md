@@ -4,7 +4,7 @@ EdgeWeaver 是面向弱网边缘设备的 MoonBit 自治核心库与平台原型
 
 ## 当前交付边界
 
-核心库包含登记、心跳、配置与命令模型、有界事件队列、checkpoint/restore、幂等回放、重连退避、白名单执行和离线策略预算。`disk/` 是 native 文件适配器，保存版本化 store、安全执行/策略 checkpoint 和演示用磁盘接收收据。`cmd/main` 是同进程模拟；`cmd/recovery` 验证磁盘重启；`cmd/netdemo` 通过两个独立进程完成本机 TCP 登记、心跳与事件确认，并提供可由 systemd 启动的本机节点回放与控制端角色；`cmd/safety` 展示未知执行结果的安全恢复。远程云边服务、真实命令运行器、设备驱动和 TLS 凭证仍未交付。
+核心库包含登记、心跳、配置与命令模型、有界事件队列、checkpoint/restore、幂等回放、重连退避、白名单执行、离线策略预算和统一设备观测契约。`disk/` 是 native 文件适配器，保存版本化 store、安全执行/策略 checkpoint 和演示用磁盘接收收据。`cmd/main` 是同进程模拟；`cmd/recovery` 验证磁盘重启；`cmd/netdemo` 通过两个独立进程完成本机 TCP 登记、心跳与事件确认，并提供可由 systemd 启动的本机节点回放与控制端角色；`cmd/safety` 展示未知执行结果的安全恢复。`linux_device/` 只读 `/proc/uptime` 取得真实主机运行秒数。远程云边服务、真实命令运行器、物理设备驱动和 TLS 凭证仍未交付。
 
 [KubeEdge](https://kubeedge.io/docs/) 基于 Kubernetes，已有容器编排、设备管理、云边同步和边缘自治能力。EdgeWeaver 聚焦无 Kubernetes 前置的 MoonBit 弱网状态与安全执行规则，提供可组合、可测试的核心库；两者功能有交集，当前原型不承担 KubeEdge 的平台功能。
 
@@ -37,6 +37,7 @@ EdgeWeaver 是面向弱网边缘设备的 MoonBit 自治核心库与平台原型
 - `cmd/main/`：命令行程序入口，提供节点登记、心跳、事件入队、能力握手和回放的最小闭环示例。
 - `cmd/recovery/`：磁盘 checkpoint、进程重启和接收收据去重的可运行验收。
 - `cmd/netdemo/`、`network/`：本机 TCP 双进程示例、Linux 服务入口与 native socket 适配器。
+- `cmd/device/`、`linux_device/`：Linux 主机运行时信息的只读采集示例与 native 适配器。
 - `cmd/safety/`：命令结果不确定时的跨进程安全恢复示例。
 - `disk/`：native 文件适配器，负责版本化 checkpoint 和演示用接收收据的原子写入。
 - `deploy.mbt`：节点端与控制面运行档案、资源边界和启动参数解析。
@@ -57,7 +58,7 @@ moon test --deny-warn
 moon run cmd/main
 ```
 
-当前在 Ubuntu WSL2 实测 79 项测试通过；`moon run cmd/main` 应输出 `acknowledged events: 1`、`pending events: 0` 及一行结构化诊断 JSON，验证模拟的节点登记、心跳与事件回放路径。诊断字段与脱敏边界见 [`docs/diagnostics-json.md`](docs/diagnostics-json.md)。本机 TCP 帧交换由 `network/socket_wbtest.mbt` 覆盖。磁盘收据格式 2 按完整消息信封判重；旧版仅有 ID 的收据会拒绝自动确认，升级时须人工核实并保留原始证据。
+当前在 Ubuntu WSL2 实测 82 项 native 测试通过；根 package 的纯领域逻辑另在 wasm、wasm-gc、JS、native 各通过 71 项测试。`moon run cmd/main` 应输出 `acknowledged events: 1`、`pending events: 0` 及一行结构化诊断 JSON。设备契约和 `moon run cmd/device` 示例见 [`docs/device-adapters.md`](docs/device-adapters.md)。本机 TCP 帧交换由 `network/socket_wbtest.mbt` 覆盖。磁盘收据格式 2 按完整消息信封判重；旧版仅有 ID 的收据会拒绝自动确认，升级时须人工核实并保留原始证据。
 
 磁盘重启验收在仓库根目录分别运行两个命令（第二个命令启动新进程）：
 

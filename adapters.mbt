@@ -4,6 +4,8 @@ pub(all) suberror AdapterError {
   EmptyNodeId
   EmptyAdapterId
   EmptyUnit
+  EmptyMetric
+  EmptyDeviceId
   EmptyAction
   EmptyActionSet
   DuplicateAdapterId(String)
@@ -11,6 +13,7 @@ pub(all) suberror AdapterError {
   UnknownActuator(String)
   ActionNotAllowed(String)
   InvalidTimestamp
+  ReadUnavailable(String)
 } derive(Debug, Eq)
 
 ///|
@@ -177,6 +180,25 @@ pub fn DeviceSimulator::read_sensor(
     }
   }
   raise AdapterError::UnknownSensor(sensor_id)
+}
+
+///|
+/// Collects one simulated sensor through the shared device observation contract.
+pub fn DeviceSimulator::collect_sensor(
+  self : DeviceSimulator,
+  sensor_id~ : String,
+  at~ : Timestamp,
+) -> DeviceObservation raise AdapterError {
+  let reading = self.read_sensor(sensor_id~, at~)
+  DeviceObservation::new(
+    node_id=self.node_id,
+    device_id=reading.sensor_id,
+    health=NodeHealth::Healthy,
+    metric="value",
+    value=reading.value,
+    unit=reading.unit,
+    captured_at=reading.captured_at,
+  )
 }
 
 ///|

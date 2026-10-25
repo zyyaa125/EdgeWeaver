@@ -13,6 +13,8 @@ name = "zyyaa125/edgeweaver"
 
 version = "0.1.0"
 
+license = "MIT"
+
 readme = "README.mbt.md"
 
 repository = "https://github.com/zyyaa125/EdgeWeaver"

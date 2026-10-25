@@ -1,0 +1,8 @@
+import {
+  "zyyaa125/edgeweaver",
+}
+
+options(
+  "native-stub": [ "uptime.c" ],
+  targets: { "uptime.mbt": [ "native" ], "uptime_wbtest.mbt": [ "native" ] },
+)

@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "zyyaa125/edgeweaver/linux_device"
+
+import {
+  "zyyaa125/edgeweaver",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct LinuxUptimeAdapter {
+  id : String
+}
+pub fn LinuxUptimeAdapter::collect(Self, node_id~ : @edgeweaver.NodeId, at~ : @edgeweaver.Timestamp) -> @edgeweaver.DeviceObservation raise @edgeweaver.AdapterError
+pub fn LinuxUptimeAdapter::collect_now(Self, node_id~ : @edgeweaver.NodeId) -> @edgeweaver.DeviceObservation raise @edgeweaver.AdapterError
+pub fn LinuxUptimeAdapter::new() -> Self
+pub fn LinuxUptimeAdapter::supported() -> Bool
+
+// Type aliases
+
+// Traits

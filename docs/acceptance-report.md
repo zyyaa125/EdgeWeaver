@@ -34,3 +34,9 @@
 按 [`../deploy/linux-service.md`](../deploy/linux-service.md) 将同一 Linux ELF 安装为节点与控制端两个角色，配置、systemd 单元和 `edgeweaver` 非特权账户均在 WSL 中实装。`systemd-analyze verify` 无诊断；服务可启动、停止、重启，角色数据目录及 `events` 子目录均为 `edgeweaver:edgeweaver 0700`，journald 即时记录启动和 `drained=1; pending=0`。以服务账户入队 1 条样例事件后自动回放；再停止节点，发送第 2 条事件使控制端接收但本地仍待确认，重启控制端和节点后本地队列清空，格式 2 收据仅含 2 条消息。模式 `0666` 的配置文件被拒绝，启动退出码为 2；把节点 `events` 目录临时改为 `0755` 也被拒绝，之后已恢复 `0700`。测试结束后服务已停止，安装文件和演示状态仍保留在 WSL 供复核。
 
 这一验收只覆盖同机 loopback、样例节点和 systemd 用户态进程。没有验证远端网络、TLS、真实设备采集、实际命令运行器、掉电持久性或独立物理 Linux 主机。
+
+## 2026-10-25：M7 设备适配与后端边界
+
+新增的 `DeviceObservation` 将节点、设备、健康、指标、值、单位和时间统一为纯领域数据，并可编码成版本 1 Telemetry 信封。确定性模拟器、空字段/负时间拒绝及 JSON 回读均有测试。Linux native 的 `LinuxUptimeAdapter` 从固定 `/proc/uptime` 路径读取真实主机运行秒数；`moon run cmd/device` 在 Ubuntu WSL2 输出观测及事件 JSON，值随启动时间变化。这是主机信息适配器，**不是物理传感器驱动或整机健康诊断**；读取成功仍将健康标为 `Unknown`。
+
+Windows 与 Ubuntu native 的 `moon test --deny-warn` 均为 **82/82 通过**。纯根 package 的 `moon check . --target all --deny-warn` 通过，`moon test . --target all --deny-warn` 在 wasm、wasm-gc、JS、native 各 **71/71 通过**。整模块 `moon check --target all --deny-warn` 的首个相关错误仍是 `disk/checkpoint_wbtest.mbt` 在非 native 后端引用 native 专用解码函数；native I/O 包不宣称可跨后端运行。新增适配器只依赖 MoonBit core 与 Linux procfs，没有额外第三方库；模块增加 MIT 许可元数据，Mooncakes 发布未执行。

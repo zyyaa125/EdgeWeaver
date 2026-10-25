@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/json",
+  "zyyaa125/edgeweaver",
+  "zyyaa125/edgeweaver/linux_device",
+}
+
+pkgtype(kind: "executable")
+
+options(
+  targets: { "main.mbt": [ "native" ] },
+)

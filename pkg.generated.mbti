@@ -20,6 +20,8 @@ pub(all) suberror AdapterError {
   EmptyNodeId
   EmptyAdapterId
   EmptyUnit
+  EmptyMetric
+  EmptyDeviceId
   EmptyAction
   EmptyActionSet
   DuplicateAdapterId(String)
@@ -27,6 +29,7 @@ pub(all) suberror AdapterError {
   UnknownActuator(String)
   ActionNotAllowed(String)
   InvalidTimestamp
+  ReadUnavailable(String)
 } derive(Eq, @debug.Debug)
 pub fn AdapterError::equal(Self, Self) -> Bool
 pub fn AdapterError::not_equal(Self, Self) -> Bool
@@ -454,11 +457,29 @@ pub fn DeploymentTarget::equal(Self, Self) -> Bool
 pub fn DeploymentTarget::not_equal(Self, Self) -> Bool
 pub fn DeploymentTarget::to_repr(Self) -> @debug.Repr
 
+pub(all) struct DeviceObservation {
+  node_id : NodeId
+  device_id : String
+  health : NodeHealth
+  metric : String
+  value : Int
+  unit : String
+  captured_at : Timestamp
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn DeviceObservation::equal(Self, Self) -> Bool
+pub fn DeviceObservation::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn DeviceObservation::new(node_id~ : NodeId, device_id~ : String, health~ : NodeHealth, metric~ : String, value~ : Int, unit~ : String, captured_at~ : Timestamp) -> Self raise AdapterError
+pub fn DeviceObservation::not_equal(Self, Self) -> Bool
+pub fn DeviceObservation::to_envelope(Self, message_id~ : String) -> MessageEnvelope raise ProtocolError
+pub fn DeviceObservation::to_json(Self) -> Json
+pub fn DeviceObservation::to_repr(Self) -> @debug.Repr
+
 pub(all) struct DeviceSimulator {
   node_id : NodeId
   mut sensors : Array[SensorAdapter]
   mut actuators : Array[ActuatorAdapter]
 } derive(Eq, @debug.Debug)
+pub fn DeviceSimulator::collect_sensor(Self, sensor_id~ : String, at~ : Timestamp) -> DeviceObservation raise AdapterError
 pub fn DeviceSimulator::equal(Self, Self) -> Bool
 pub fn DeviceSimulator::execute_actuator(Self, actuator_id~ : String, action~ : String, at~ : Timestamp) -> ActuatorResult raise AdapterError
 pub fn DeviceSimulator::new(node_id~ : NodeId, sensors~ : Array[SensorAdapter], actuators~ : Array[ActuatorAdapter]) -> Self raise AdapterError
