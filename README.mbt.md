@@ -47,9 +47,19 @@ EdgeWeaver 是面向弱网边缘设备的 MoonBit 自治核心库与平台原型
 - `moon.mod`：模块名称、版本、首选目标后端和项目元数据。
 - `AGENTS.md`：本仓库的代码组织、变更范围和验证约定。
 
-## 开发
+## 安装与开发
 
-需要已安装 MoonBit 工具链。本次使用 `moon 0.1.20261012`、`moonc v0.10.15` 验证；CI 的 `Show toolchain` 步骤会记录实际版本。常用命令：
+Linux 原生构建需要 C 编译器（Ubuntu 可运行 `sudo apt-get install build-essential`）。安装 MoonBit 工具链并克隆仓库：
+
+```sh
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s latest
+export PATH="$HOME/.moon/bin:$PATH"
+git clone https://github.com/zyyaa125/EdgeWeaver.git
+cd EdgeWeaver
+moon version --all
+```
+
+要求 `moonc` 不低于 v0.10.14；本项目在 Ubuntu WSL2 使用 `moonc v0.10.17` 验证。Windows 可使用官方 MoonBit 工具链运行纯领域代码与 native 测试，Linux 服务和 `/proc/uptime` 示例需在 Linux 运行。CI 的 `Show toolchain` 步骤记录实际版本。常用命令：
 
 ```sh
 moon fmt --check
